@@ -1,8 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'dart:async';
-
 import 'package:flutter/services.dart';
+
 import 'package:cross_bluetooth_api/cross_bluetooth_api.dart';
+
+extension on ByteData {
+  String getString() {
+    return utf8.decode(buffer.asUint8List(offsetInBytes, lengthInBytes));
+  }
+}
 
 void main() {
   runApp(const MyApp());
@@ -16,45 +22,85 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-
-  @override
-  void initState() {
-    super.initState();
-    initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion =
-          await CrossBluetoothApi.platformVersion ?? 'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
-
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
-  }
+  String? _state;
+  Device? _device;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: const Text('Cross Bluetooth API'),
         ),
         body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  _state ?? '',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              TextButton(
+                  onPressed: () async {
+                    try {
+                      setState(() {
+                        _state = '';
+                      });
+                      if (!(_device?.gatt.connected ?? false)) {
+                        _device = await Bluetooth.requestDevice(
+                            RequestDeviceOptions(
+                                optionalServices: ['device_information'],
+                                acceptAllDevices: true));
+                        setState(() {
+                          _state = _device.toString();
+                        });
+                        final server = await _device!.gatt.connect();
+                        setState(() {
+                          _state = server.toString();
+                        });
+                        final service = await server
+                            .getPrimaryService('device_information');
+                        final characteristic = await service
+                            .getCharacteristic('model_number_string');
+                        final value = await characteristic.readValue();
+                        setState(() {
+                          _state = value.getString();
+                        });
+                      } else {
+                        await _device?.gatt.disconnect();
+                        setState(() {
+                          _state = _device?.gatt.toString();
+                        });
+                      }
+                    } on NotFoundError catch (e) {
+                      setState(() {
+                        _state = e.message;
+                      });
+                    } on TypeError catch (e) {
+                      setState(() {
+                        _state = e.message;
+                      });
+                    } on NetworkError catch (e) {
+                      setState(() {
+                        _state = e.message;
+                      });
+                    } on SecurityError catch (e) {
+                      setState(() {
+                        _state = e.message;
+                      });
+                    } catch (e) {
+                      _state = e.toString();
+                    }
+                  },
+                  child: Text(!(_device?.gatt.connected ?? false)
+                      ? 'Scan'
+                      : 'Disconnect')),
+            ],
+          ),
         ),
       ),
     );

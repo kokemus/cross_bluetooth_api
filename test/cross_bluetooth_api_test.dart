@@ -18,6 +18,9 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    expect(await CrossBluetoothApi.platformVersion, '42');
+    expect(
+        await Bluetooth.requestDevice(
+            RequestDeviceOptions(acceptAllDevices: true)),
+        '42');
   });
 }

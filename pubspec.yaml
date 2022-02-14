@@ -38,7 +38,7 @@ flutter:
         pluginClass: CrossBluetoothApiPlugin
       web:
         pluginClass: CrossBluetoothApiWeb
-        fileName: cross_bluetooth_api_web.dart
+        fileName: src/web/cross_bluetooth_api_web.dart
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:
