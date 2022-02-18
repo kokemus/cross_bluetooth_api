@@ -18,6 +18,10 @@ class Base {
           throw SecurityError();
         } else if (e.message!.contains('NetworkError')) {
           throw NetworkError(message: e.message);
+        } else if (e.message!.contains('NotSupportedError')) {
+          throw NotSupportedError(message: e.message);
+        } else if (e.message!.contains('InvalidStateError')) {
+          throw InvalidStateError(message: e.message);
         }
       }
       throw UnknownError(e.message);

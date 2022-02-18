@@ -30,3 +30,13 @@ class SecurityError extends UnknownError {
 class NetworkError extends UnknownError {
   NetworkError({String? message = 'Unsupported device.'}) : super(message);
 }
+
+class NotSupportedError extends UnknownError {
+  NotSupportedError({String? message = 'The operation is not supported.'})
+      : super(message);
+}
+
+class InvalidStateError extends UnknownError {
+  InvalidStateError({String? message = 'The operation is not supported.'})
+      : super(message);
+}

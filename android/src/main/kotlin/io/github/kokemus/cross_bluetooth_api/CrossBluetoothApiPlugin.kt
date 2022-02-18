@@ -66,16 +66,28 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
 
   override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?): Boolean {
     when (resultCode) {
-        Activity.RESULT_OK -> {
-          val selected = intent!!.getSerializableExtra("selected")
-          pendingResult?.success(selected)
-        }
-        Activity.RESULT_CANCELED -> {
-          pendingResult?.error("NotFoundError", "NotFoundError: User cancelled the requestDevice() chooser.", null)
-        }
-        else -> {
-          pendingResult?.error("NotFoundError", "NotFoundError: There is no Bluetooth device that matches the specified options.", null)
-        }
+      Activity.RESULT_OK -> {
+        val selected = intent!!.getSerializableExtra("selected")
+        pendingResult?.success(selected)
+      }
+      Activity.RESULT_CANCELED -> {
+        pendingResult?.error("NotFoundError", "NotFoundError: User cancelled the requestDevice() chooser.", null)
+      }
+      RequestDeviceActivity.RESULT_TYPE_ERROR -> {
+        pendingResult?.error("TypeError", "TypeError: The provided options do not make sense.", null)
+      }
+      RequestDeviceActivity.RESULT_NOT_FOUND_ERROR -> {
+        pendingResult?.error("NotFoundError", "NotFoundError: There is no Bluetooth device that matches the specified options.", null)
+      }
+      RequestDeviceActivity.RESULT_SECURITY_ERROR -> {
+        pendingResult?.error("SecurityError", "SecurityError: There is no Bluetooth device that matches the specified options.", null)
+      }
+      RequestDeviceActivity.RESULT_NOT_SUPPORTED_ERROR -> {
+        pendingResult?.error("NotSupportedError", "NotSupportedError: The operation is not supported.", null)
+      }
+      RequestDeviceActivity.RESULT_INVALID_STATE_ERROR -> {
+        pendingResult?.error("InvalidStateError", "InvalidStateError: Bluetooth is turned off.", null)
+      }
     }
     return false
   }

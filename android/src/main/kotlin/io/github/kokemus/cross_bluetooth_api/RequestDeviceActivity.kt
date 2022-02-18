@@ -1,6 +1,7 @@
 package io.github.kokemus.cross_bluetooth_api
 
 import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.*
@@ -27,6 +28,15 @@ import java.lang.Exception
 import java.util.*
 
 class RequestDeviceActivity: Activity() {
+    companion object {
+        const val RESULT_TYPE_ERROR = RESULT_FIRST_USER
+        const val RESULT_NOT_FOUND_ERROR = RESULT_FIRST_USER + 1
+        const val RESULT_SECURITY_ERROR = RESULT_FIRST_USER + 2
+        const val RESULT_NOT_SUPPORTED_ERROR = RESULT_FIRST_USER + 3
+        const val RESULT_INVALID_STATE_ERROR = RESULT_FIRST_USER + 4
+
+        private const val REQUEST_ENABLE_BT = 0
+    }
     private var scanner: BluetoothLeScanner? = null
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var options: RequestDeviceOptions
@@ -46,21 +56,13 @@ class RequestDeviceActivity: Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val bluetoothAdapter = (getSystemService(BLUETOOTH_SERVICE) as BluetoothManager).adapter
-        if (bluetoothAdapter?.isEnabled == false) {
-            setResult(RESULT_FIRST_USER)
-            finish()
-            return
-        }
-        scanner = bluetoothAdapter?.bluetoothLeScanner
-
         if (intent.hasExtra("options")) {
             options = RequestDeviceOptions.fromMap(
                 intent.getSerializableExtra("options") as Map<String, Any>
             )
             Log.d("options", options.toString())
         } else {
-            setResult(RESULT_FIRST_USER)
+            setResult(RESULT_TYPE_ERROR)
             finish()
             return
         }
@@ -104,15 +106,34 @@ class RequestDeviceActivity: Activity() {
 
         setContentView(listView)
 
+        val bluetoothAdapter = (getSystemService(BLUETOOTH_SERVICE) as BluetoothManager).adapter
+        scanner = bluetoothAdapter?.bluetoothLeScanner
         if (scanner != null) {
-            handler.postDelayed({
-                stop()
-            }, 60 * 1000)
-            start()
-        } else {
-            setResult(RESULT_FIRST_USER)
-            finish()
-            return
+            if (bluetoothAdapter?.isEnabled == false) {
+                startActivityForResult(
+                    Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),
+                    REQUEST_ENABLE_BT
+                )
+                return
+            } else {
+                start()
+                return
+            }
+        }
+        setResult(RESULT_NOT_SUPPORTED_ERROR)
+        finish()
+        return
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_ENABLE_BT) {
+            if (resultCode == RESULT_OK) {
+                start()
+            } else {
+                setResult(RESULT_INVALID_STATE_ERROR)
+                finish()
+            }
         }
     }
 
@@ -193,7 +214,7 @@ class RequestDeviceActivity: Activity() {
             .setMatchMode(MATCH_MODE_STICKY)
             .build()
         handler.postDelayed({
-            scanner?.stopScan(callback)
+            stop()
         }, 60 * 1000)
         try {
             scanner?.startScan(filters, settings, callback)
