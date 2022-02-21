@@ -43,8 +43,60 @@ try {
 }
 ```
 
-## Supports
+## Support
 
-* Android
-* iOS
-* Google Chrome
+| Bluetooth  |  Android | iOS  | Chrome |
+|---|:---:|:---:|:---:|
+| referringDevice |   |   |   |
+| getAvailability |   |   |   |
+| getDevices |   |   |   |
+| getDevices |   |   |   |
+| requestDevice | x |  | x |
+
+</br>
+
+| BluetoothDevice  |  Android | iOS  | Chrome |
+|---|:---:|:---:|:---:|
+| gatt | x |   | x |
+| gattserverdisconnected |   |   |   |
+| id | x |   | x |
+| name | x |   | x |
+
+</br>
+
+| BluetoothRemoteGATTServer  |  Android | iOS  | Chrome |
+|---|:---:|:---:|:---:|
+| connect | x |   | x |
+| connected | x |   | x |
+| device | x |   | x |
+| disconnect | x |   | x |
+| getPrimaryService | x |   | x |
+| getPrimaryServices |   |   |   |
+
+</br>
+
+| BluetoothRemoteGATTService  |  Android | iOS  | Chrome |
+|---|:---:|:---:|:---:|
+| device | x |   | x |
+| isPrimary | x |   | x |
+| uuid | x |   | x |
+| getCharacteristic | x |   | x |
+| getCharacteristics |   |   |   |
+
+</br>
+
+| BluetoothRemoteGATTCharacteristic  |  Android | iOS  | Chrome |
+|---|:---:|:---:|:---:|
+| service | x |   | x |
+| uuid | x |  | x |
+| properties |  |   |  |
+| value | x |   | x |
+| oncharacteristicvaluechanged |  |   |  |
+| getDescriptor |   |   |   |
+| getDescriptors |   |   |   |
+| readValue | x |   | x |
+| writeValue |  |   |  |
+| writeValueWithResponse |  |   |  |
+| writeValueWithoutResponse | x |   | x |
+| startNotifications |   |   |   |
+| stopNotifications |   |   |   |
