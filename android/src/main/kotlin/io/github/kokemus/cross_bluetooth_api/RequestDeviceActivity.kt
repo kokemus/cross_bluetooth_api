@@ -12,7 +12,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelUuid
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -60,7 +59,6 @@ class RequestDeviceActivity: Activity() {
             options = RequestDeviceOptions.fromMap(
                 intent.getSerializableExtra("options") as Map<String, Any>
             )
-            Log.d("options", options.toString())
         } else {
             setResult(RESULT_TYPE_ERROR)
             finish()
@@ -199,16 +197,12 @@ class RequestDeviceActivity: Activity() {
         }
         if (options.optionalServices != null) {
             for (service in options.optionalServices!!) {
-                filters.add(ScanFilter.Builder()
-                    .setServiceUuid(ParcelUuid(UUID.fromString(service)))
-                    .build()
-                )
+                // post filtering
             }
         }
-        if (options.acceptAllDevices != null) {
+        if (options.acceptAllDevices) {
             // nop
         }
-        Log.d("options", filters.toString())
         val settings = ScanSettings.Builder()
             .setScanMode(SCAN_MODE_LOW_LATENCY)
             .setMatchMode(MATCH_MODE_STICKY)
