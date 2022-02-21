@@ -66,6 +66,7 @@ class CrossBluetoothApiWeb {
 
   Future disconnect(Map<String, dynamic> arguments) async {
     final device = _devices.firstWhere((d) => d.id == arguments['id']);
+    _devices.remove(device);
     device.gatt?.disconnect();
   }
 
