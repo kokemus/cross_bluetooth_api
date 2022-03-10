@@ -37,6 +37,10 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
             getCharacteristic(arguments: call.arguments as? [String : AnyObject], result: result)
         } else if (call.method == "readValue") {
             readValue(arguments: call.arguments as? [String : AnyObject], result: result)
+        } else if (call.method == "writeValueWithoutResponse") {
+            writeValueWithoutResponse(arguments: call.arguments as? [String : AnyObject], result: result)
+        } else if (call.method == "writeValueWithResponse") {
+            writeValueWithResponse(arguments: call.arguments as? [String : AnyObject], result: result)
         } else {
             result(FlutterMethodNotImplemented)
         }
@@ -117,6 +121,45 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
             result(notFoundError)
         }
     }
+
+    private func writeValueWithoutResponse(arguments: Dictionary<String, AnyObject>?, result: @escaping FlutterResult) {
+        let deviceId = arguments!["deviceId"] as! String
+        let serviceUUID = arguments!["serviceUUID"] as! String
+        let characteristicUUID = arguments!["characteristic"] as! String
+        let value = arguments!["value"] as! Data
+
+        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == deviceId }) else {
+            return result(networkError)
+        }
+        let service = peripheral.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
+        let characteristic = service?.characteristics?.first { $0.uuid == CBUUID(string: characteristicUUID) }
+        if characteristic != nil {
+            peripheral.writeValue(value, for: characteristic!, type: .withoutResponse)
+            result(value)
+        } else {
+            result(notFoundError)
+        }
+    }
+
+    private func writeValueWithResponse(arguments: Dictionary<String, AnyObject>?, result: @escaping FlutterResult) {
+        let deviceId = arguments!["deviceId"] as! String
+        let serviceUUID = arguments!["serviceUUID"] as! String
+        let characteristicUUID = arguments!["characteristic"] as! String
+        let value = arguments!["value"] as! Data
+
+        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == deviceId }) else {
+            return result(networkError)
+        }
+        let service = peripheral.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
+        let characteristic = service?.characteristics?.first { $0.uuid == CBUUID(string: characteristicUUID) }
+        if characteristic != nil {
+            pendingResult = result
+            peripheral.delegate = self
+            peripheral.writeValue(value, for: characteristic!, type: .withResponse)
+        } else {
+            result(notFoundError)
+        }
+    }
 }
 
 extension SwiftCrossBluetoothApiPlugin: RequestDeviceDelegate {
@@ -172,6 +215,14 @@ extension SwiftCrossBluetoothApiPlugin: CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        if error != nil {
+            pendingResult?(networkError)
+        } else {
+            pendingResult?(characteristic.value)
+        }
+    }
+
+    public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         if error != nil {
             pendingResult?(networkError)
         } else {
