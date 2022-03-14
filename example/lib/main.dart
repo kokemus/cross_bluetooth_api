@@ -53,8 +53,10 @@ class _MyAppState extends State<MyApp> {
                       if (!(_device?.gatt.connected ?? false)) {
                         _device = await Bluetooth.requestDevice(
                             RequestDeviceOptions(
-                                optionalServices: ['device_information'],
-                                acceptAllDevices: true));
+                                acceptAllDevices: true,
+                                optionalServices: [
+                              '0000180a-0000-1000-8000-00805f9b34fb'
+                            ]));
                         setState(() {
                           _state = _device.toString();
                         });
@@ -62,10 +64,13 @@ class _MyAppState extends State<MyApp> {
                         setState(() {
                           _state = server.toString();
                         });
-                        final service = await server
-                            .getPrimaryService('device_information');
-                        final characteristic = await service
-                            .getCharacteristic('model_number_string');
+                        final service = await server.getPrimaryService(
+                            '0000180a-0000-1000-8000-00805f9b34fb');
+                        setState(() {
+                          _state = service.uuid;
+                        });
+                        final characteristic = await service.getCharacteristic(
+                            '00002a24-0000-1000-8000-00805f9b34fb');
                         final value = await characteristic.readValue();
                         setState(() {
                           _state = value.getString();
@@ -73,27 +78,13 @@ class _MyAppState extends State<MyApp> {
                       } else {
                         await _device?.gatt.disconnect();
                         setState(() {
-                          _state = _device?.gatt.toString();
+                          _state = '';
                         });
                       }
-                    } on NotFoundError catch (e) {
+                    } on UnknownError catch (e) {
                       setState(() {
                         _state = e.message;
                       });
-                    } on TypeError catch (e) {
-                      setState(() {
-                        _state = e.message;
-                      });
-                    } on NetworkError catch (e) {
-                      setState(() {
-                        _state = e.message;
-                      });
-                    } on SecurityError catch (e) {
-                      setState(() {
-                        _state = e.message;
-                      });
-                    } catch (e) {
-                      _state = e.toString();
                     }
                   },
                   child: Text(!(_device?.gatt.connected ?? false)

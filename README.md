@@ -13,6 +13,13 @@ dependencies:
       url: git://github.com/kokemus/cross_bluetooth_api.git
 
 ```
+### Android
+
+> minSdkVersion 26
+
+### iOS
+
+> The app's Info.plist must contain an NSBluetoothAlwaysUsageDescription key with a string value explaining to the user how the app uses this data.
 
 ### Example
 
@@ -51,52 +58,52 @@ try {
 | getAvailability |   |   |   |
 | getDevices |   |   |   |
 | getDevices |   |   |   |
-| requestDevice | x |  | x |
+| requestDevice | x | x | x |
 
 </br>
 
 | BluetoothDevice  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
-| gatt | x |   | x |
+| gatt | x | x | x |
 | gattserverdisconnected |   |   |   |
-| id | x |   | x |
-| name | x |   | x |
+| id | x | x | x |
+| name | x | x | x |
 
 </br>
 
 | BluetoothRemoteGATTServer  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
-| connect | x |   | x |
-| connected | x |   | x |
-| device | x |   | x |
-| disconnect | x |   | x |
-| getPrimaryService | x |   | x |
+| connect | x | x | x |
+| connected | x | x | x |
+| device | x | x | x |
+| disconnect | x | x | x |
+| getPrimaryService | x | x | x |
 | getPrimaryServices |   |   |   |
 
 </br>
 
 | BluetoothRemoteGATTService  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
-| device | x |   | x |
-| isPrimary | x |   | x |
-| uuid | x |   | x |
-| getCharacteristic | x |   | x |
+| device | x | x | x |
+| isPrimary | x | x | x |
+| uuid | x | x | x |
+| getCharacteristic | x | x | x |
 | getCharacteristics |   |   |   |
 
 </br>
 
 | BluetoothRemoteGATTCharacteristic  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
-| service | x |   | x |
-| uuid | x |  | x |
+| service | x | x | x |
+| uuid | x | x | x |
 | properties |  |   |  |
-| value | x |   | x |
+| value | x | x | x |
 | oncharacteristicvaluechanged |  |   |  |
 | getDescriptor |   |   |   |
 | getDescriptors |   |   |   |
-| readValue | x |   | x |
+| readValue | x | x | x |
 | writeValue |  |   |  |
 | writeValueWithResponse |  |   |  |
-| writeValueWithoutResponse | x |   | x |
+| writeValueWithoutResponse | x | x | x |
 | startNotifications |   |   |   |
 | stopNotifications |   |   |   |
