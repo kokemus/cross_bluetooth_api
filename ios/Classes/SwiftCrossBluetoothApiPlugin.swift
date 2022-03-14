@@ -199,7 +199,7 @@ extension SwiftCrossBluetoothApiPlugin: CBCentralManagerDelegate {
 
 extension SwiftCrossBluetoothApiPlugin: CBPeripheralDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        if error != nil {
+        if error != nil || peripheral.services?.first == nil {
             pendingResult?(notFoundError)
         } else {
             pendingResult?(peripheral.services?.first?.toMap())
@@ -207,7 +207,7 @@ extension SwiftCrossBluetoothApiPlugin: CBPeripheralDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-        if error != nil {
+        if error != nil || service.characteristics?.first == nil {
             pendingResult?(notFoundError)
         } else {
             pendingResult?(service.characteristics?.first?.toMap())
