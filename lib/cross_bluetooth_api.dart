@@ -23,7 +23,7 @@ class Bluetooth {
         if (e.message!.contains('TypeError')) {
           throw TypeError();
         } else if (e.message!.contains('NotFoundError')) {
-          throw NotFoundError();
+          throw NotFoundError(message: e.message);
         } else if (e.message!.contains('SecurityError')) {
           throw SecurityError();
         } else if (e.message!.contains('NetworkError')) {
