@@ -24,6 +24,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String? _state;
   Device? _device;
+  bool _loading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,63 +38,84 @@ class _MyAppState extends State<MyApp> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  _state ?? '',
-                  textAlign: TextAlign.center,
+              SizedBox(
+                height: 48,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    _state ?? '',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
-              TextButton(
+              OutlinedButton(
                   onPressed: () async {
                     try {
-                      setState(() {
-                        _state = '';
-                      });
+                      _loading = true;
                       if (!(_device?.gatt.connected ?? false)) {
-                        _device = await Bluetooth.requestDevice(
-                            RequestDeviceOptions(
-                                acceptAllDevices: true,
-                                optionalServices: [
-                              '0000180a-0000-1000-8000-00805f9b34fb'
-                            ]));
-                        setState(() {
-                          _state = _device.toString();
-                        });
-                        final server = await _device!.gatt.connect();
-                        setState(() {
-                          _state = server.toString();
-                        });
-                        final service = await server.getPrimaryService(
-                            '0000180a-0000-1000-8000-00805f9b34fb');
-                        setState(() {
-                          _state = service.uuid;
-                        });
-                        final characteristic = await service.getCharacteristic(
-                            '00002a24-0000-1000-8000-00805f9b34fb');
-                        final value = await characteristic.readValue();
-                        setState(() {
-                          _state = value.getString();
-                        });
+                        await _connectAndRead();
                       } else {
-                        await _device?.gatt.disconnect();
-                        setState(() {
-                          _state = '';
-                        });
+                        await _disconnect();
                       }
+                      _loading = false;
                     } on UnknownError catch (e) {
+                      _loading = false;
                       setState(() {
                         _state = e.message;
                       });
                     }
                   },
-                  child: Text(!(_device?.gatt.connected ?? false)
-                      ? 'Scan'
-                      : 'Disconnect')),
+                  child: !_loading
+                      ? Text(!(_device?.gatt.connected ?? false)
+                          ? 'Scan'
+                          : 'Disconnect')
+                      : const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          )))
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future _connectAndRead() async {
+    setState(() {
+      _state = '';
+    });
+    _device = await Bluetooth.requestDevice(RequestDeviceOptions(
+        acceptAllDevices: true,
+        optionalServices: ['0000180a-0000-1000-8000-00805f9b34fb']));
+    setState(() {
+      _state = _device.toString();
+    });
+    final server = await _device!.gatt.connect();
+    setState(() {
+      _state = server.toString();
+    });
+    final service =
+        await server.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
+    setState(() {
+      _state = service.uuid;
+    });
+    final characteristic =
+        await service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb');
+    final value = await characteristic.readValue();
+    setState(() {
+      _state = value.getString();
+    });
+  }
+
+  Future _disconnect() async {
+    setState(() {
+      _state = '';
+    });
+    await _device?.gatt.disconnect();
+    setState(() {
+      _state = '';
+    });
   }
 }

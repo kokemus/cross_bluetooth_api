@@ -1,6 +1,27 @@
+import 'package:flutter/services.dart';
+
 class UnknownError implements Exception {
   String? message;
   UnknownError(this.message);
+
+  factory UnknownError.fromException(PlatformException e) {
+    if (e.message != null) {
+      if (e.message!.contains('TypeError')) {
+        return TypeError();
+      } else if (e.message!.contains('NotFoundError')) {
+        return NotFoundError();
+      } else if (e.message!.contains('SecurityError')) {
+        return SecurityError();
+      } else if (e.message!.contains('NetworkError')) {
+        return NetworkError(message: e.message);
+      } else if (e.message!.contains('NotSupportedError')) {
+        return NotSupportedError(message: e.message);
+      } else if (e.message!.contains('InvalidStateError')) {
+        return InvalidStateError(message: e.message);
+      }
+    }
+    return UnknownError(e.message);
+  }
 
   @override
   String toString() {
