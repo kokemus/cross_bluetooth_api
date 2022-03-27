@@ -56,7 +56,8 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     }
 
     private func connect(arguments: Dictionary<String, AnyObject>?, result: @escaping FlutterResult) {
-        let peripherals = manager.retrievePeripherals(withIdentifiers: [UUID(uuidString: arguments!["id"] as! String)!])
+        let deviceId = arguments!["id"] as! String
+        let peripherals = manager.retrievePeripherals(withIdentifiers: [UUID(uuidString: deviceId)!])
         guard let peripheral = peripherals.first else {
             return result(networkError)
         }
@@ -66,7 +67,8 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     }
 
     private func disconnect(arguments: Dictionary<String, AnyObject>?, result: @escaping FlutterResult) {
-        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == arguments!["id"] as! String }) else {
+        let deviceId = arguments!["id"] as! String
+        guard let peripheral = getPeripheral(deviceId) else {
             return result(networkError)
         }
         pendingResult = result
@@ -77,7 +79,7 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         let deviceId = arguments!["deviceId"] as! String
         let serviceUUID = arguments!["serviceUUID"] as! String
 
-        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == deviceId }) else {
+        guard let peripheral = getPeripheral(deviceId) else {
             return result(networkError)
         }
         pendingResult = result
@@ -90,17 +92,16 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         let serviceUUID = arguments!["serviceUUID"] as! String
         let characteristic = arguments!["characteristic"] as! String
 
-        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == deviceId }) else {
+        guard let peripheral = getPeripheral(deviceId) else {
             return result(networkError)
         }
-        let service = peripheral.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
-        if service != nil {
-            pendingResult = result
-            peripheral.delegate = self
-            peripheral.discoverCharacteristics([CBUUID(string: characteristic)], for: service!)
-        } else {
-            result(notFoundError)
+        guard let service = getService(deviceId, serviceUUID) else {
+            return result(notFoundError)
         }
+
+        pendingResult = result
+        peripheral.delegate = self
+        peripheral.discoverCharacteristics([CBUUID(string: characteristic)], for: service)
     }
 
     private func readValue(arguments: Dictionary<String, AnyObject>?, result: @escaping FlutterResult) {
@@ -108,18 +109,16 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         let serviceUUID = arguments!["serviceUUID"] as! String
         let characteristicUUID = arguments!["characteristic"] as! String
 
-        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == deviceId }) else {
+        guard let peripheral = getPeripheral(deviceId) else {
             return result(networkError)
         }
-        let service = peripheral.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
-        let characteristic = service?.characteristics?.first { $0.uuid == CBUUID(string: characteristicUUID) }
-        if characteristic != nil {
-            pendingResult = result
-            peripheral.delegate = self
-            peripheral.readValue(for: characteristic!)
-        } else {
-            result(notFoundError)
+        guard let characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID) else {
+            return result(notFoundError)
         }
+
+        pendingResult = result
+        peripheral.delegate = self
+        peripheral.readValue(for: characteristic)
     }
 
     private func writeValueWithoutResponse(arguments: Dictionary<String, AnyObject>?, result: @escaping FlutterResult) {
@@ -128,17 +127,15 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         let characteristicUUID = arguments!["characteristic"] as! String
         let value = arguments!["value"] as! Data
 
-        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == deviceId }) else {
+        guard let peripheral = getPeripheral(deviceId) else {
             return result(networkError)
         }
-        let service = peripheral.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
-        let characteristic = service?.characteristics?.first { $0.uuid == CBUUID(string: characteristicUUID) }
-        if characteristic != nil {
-            peripheral.writeValue(value, for: characteristic!, type: .withoutResponse)
-            result(value)
-        } else {
-            result(notFoundError)
+        guard let characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID) else {
+            return result(notFoundError)
         }
+
+        peripheral.writeValue(value, for: characteristic, type: .withoutResponse)
+        result(value)
     }
 
     private func writeValueWithResponse(arguments: Dictionary<String, AnyObject>?, result: @escaping FlutterResult) {
@@ -147,18 +144,31 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         let characteristicUUID = arguments!["characteristic"] as! String
         let value = arguments!["value"] as! Data
 
-        guard let peripheral = peripherals.first(where: { $0.identifier.uuidString == deviceId }) else {
+        guard let peripheral = getPeripheral(deviceId) else {
             return result(networkError)
         }
-        let service = peripheral.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
-        let characteristic = service?.characteristics?.first { $0.uuid == CBUUID(string: characteristicUUID) }
-        if characteristic != nil {
-            pendingResult = result
-            peripheral.delegate = self
-            peripheral.writeValue(value, for: characteristic!, type: .withResponse)
-        } else {
-            result(notFoundError)
+        guard let characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID) else {
+            return result(notFoundError)
         }
+
+        pendingResult = result
+        peripheral.delegate = self
+        peripheral.writeValue(value, for: characteristic, type: .withResponse)
+    }
+
+    private func getPeripheral(_ deviceId: String) -> CBPeripheral? {
+        return peripherals.first(where: { $0.identifier.uuidString == deviceId })
+    }
+
+    private func getService(_ deviceId: String, _ serviceUUID: String) -> CBService? {
+        let peripheral = getPeripheral(deviceId)
+        return peripheral?.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
+    }
+
+    private func getCharacteristic(_ deviceId: String, _ serviceUUID: String, _ characteristicUUID: String) -> CBCharacteristic? {
+        let peripheral = getPeripheral(deviceId)
+        let service = peripheral?.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
+        return service?.characteristics?.first { $0.uuid == CBUUID(string: characteristicUUID) }
     }
 }
 

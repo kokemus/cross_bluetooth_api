@@ -1,4 +1,3 @@
-import 'package:js/js.dart';
 import 'package:js/js_util.dart';
 
 import 'bluetooth_remote_gatt_server.dart';

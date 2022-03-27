@@ -14,39 +14,21 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.PluginRegistry.ActivityResultListener
-import io.github.kokemus.cross_bluetooth_api.extensions.toMap
+import io.github.kokemus.cross_bluetooth_api.extensions.*
 import io.github.kokemus.cross_bluetooth_api.models.Device
-import io.github.kokemus.cross_bluetooth_api.models.RequestDeviceOptions
 import java.io.Serializable
 import java.util.*
 
-/** CrossBluetoothApiPlugin */
 class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, ActivityResultListener {
-  /// The MethodChannel that will the communication between Flutter and native Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine and unregister it
-  /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
   private var activity: Activity? = null
   private var activityPluginBinding: ActivityPluginBinding? = null
   private var pendingResult: Result? = null
+  private var bluetoothGatts: MutableList<BluetoothGatt> = mutableListOf()
 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "cross_bluetooth_api")
     channel.setMethodCallHandler(this)
-  }
-
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
-    when (call.method) {
-      "requestDevice" -> requestDevice(call.arguments as java.util.HashMap<String, Object>, result)
-      "connect" -> connect(call.arguments as java.util.HashMap<String, Object>, result)
-      "disconnect" -> disconnect(call.arguments as java.util.HashMap<String, Object>, result)
-      "getPrimaryService" -> getPrimaryService(call.arguments as java.util.HashMap<String, Object>, result)
-      "getCharacteristic" -> getCharacteristic(call.arguments as java.util.HashMap<String, Object>, result)
-      "readValue" -> readValue(call.arguments as java.util.HashMap<String, Object>, result)
-      "writeValueWithoutResponse" -> writeValueWithoutResponse(call.arguments as java.util.HashMap<String, Object>, result)
-      else -> result.notImplemented()
-    }
   }
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
@@ -54,8 +36,8 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
   }
 
   override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
-    activity = activityPluginBinding.getActivity()
-    activityPluginBinding?.addActivityResultListener(this)
+    activity = activityPluginBinding.activity
+    activityPluginBinding.addActivityResultListener(this)
   }
 
   override fun onDetachedFromActivity() {
@@ -74,26 +56,29 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
         val selected = intent!!.getSerializableExtra("selected")
         pendingResult?.success(selected)
       }
-      Activity.RESULT_CANCELED -> {
-        pendingResult?.error("NotFoundError", "NotFoundError: User cancelled the requestDevice() chooser.", null)
-      }
-      RequestDeviceActivity.RESULT_TYPE_ERROR -> {
-        pendingResult?.error("TypeError", "TypeError: The provided options do not make sense.", null)
-      }
-      RequestDeviceActivity.RESULT_NOT_FOUND_ERROR -> {
-        pendingResult?.error("NotFoundError", "NotFoundError: There is no Bluetooth device that matches the specified options.", null)
-      }
-      RequestDeviceActivity.RESULT_SECURITY_ERROR -> {
-        pendingResult?.error("SecurityError", "SecurityError: There is no Bluetooth device that matches the specified options.", null)
-      }
-      RequestDeviceActivity.RESULT_NOT_SUPPORTED_ERROR -> {
-        pendingResult?.error("NotSupportedError", "NotSupportedError: The operation is not supported.", null)
-      }
-      RequestDeviceActivity.RESULT_INVALID_STATE_ERROR -> {
-        pendingResult?.error("InvalidStateError", "InvalidStateError: Bluetooth is turned off.", null)
-      }
+      Activity.RESULT_CANCELED -> pendingResult?.userCancelledError()
+      RequestDeviceActivity.RESULT_TYPE_ERROR -> pendingResult?.typeError()
+      RequestDeviceActivity.RESULT_NOT_FOUND_ERROR -> pendingResult?.notFoundError()
+      RequestDeviceActivity.RESULT_SECURITY_ERROR -> pendingResult?.securityError()
+      RequestDeviceActivity.RESULT_NOT_SUPPORTED_ERROR -> pendingResult?.notSupportedError()
+      RequestDeviceActivity.RESULT_INVALID_STATE_ERROR -> pendingResult?.invalidStateError()
     }
     return false
+  }
+
+  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+    @Suppress("UNCHECKED_CAST")
+    val arguments = call.arguments as HashMap<String, Any>
+    when (call.method) {
+      "requestDevice" -> requestDevice(arguments, result)
+      "connect" -> connect(arguments, result)
+      "disconnect" -> disconnect(arguments, result)
+      "getPrimaryService" -> getPrimaryService(arguments, result)
+      "getCharacteristic" -> getCharacteristic(arguments, result)
+      "readValue" -> readValue(arguments, result)
+      "writeValueWithoutResponse" -> writeValueWithoutResponse(arguments, result)
+      else -> result.notImplemented()
+    }
   }
 
   private fun requestDevice(arguments: Map<String, Any>, result: Result) {
@@ -104,8 +89,6 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       0
     )
   }
-
-  private var bluetoothGatts: MutableList<BluetoothGatt> = mutableListOf()
 
   private val callback = object: BluetoothGattCallback() {
     override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
@@ -137,7 +120,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       if (status == GATT_SUCCESS) {
         pendingResult?.success(characteristic?.value)
       } else {
-        pendingResult?.error("NetworkError", "NetworkError: A network error occurred.", null)
+        pendingResult?.networkError()
       }
     }
 
@@ -150,7 +133,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       if (status == GATT_SUCCESS) {
         pendingResult?.success(characteristic?.value)
       } else {
-        pendingResult?.error("NetworkError", "NetworkError: A network error occurred.", null)
+        pendingResult?.networkError()
       }
     }
   }
@@ -163,58 +146,83 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     val gatt = bluetoothDevice.connectGatt(activity, false, callback)
     if (gatt == null) {
       pendingResult = null
-      result.error("NetworkError", "NetworkError: A network error occurred.", null)
+      result.networkError()
     }
   }
 
   private fun disconnect(arguments: Map<String, Any>, result: Result) {
     pendingResult = result
-    val gatt = bluetoothGatts.find { it.device.address == arguments["id"] }
+    val gatt = getGatt(arguments["id"] as String)
     gatt?.disconnect()
   }
 
   private fun getPrimaryService(arguments: Map<String, Any>, result: Result) {
-    val gatt = bluetoothGatts.find { it.device.address == arguments["deviceId"] }
-    val service = gatt?.getService(UUID.fromString(arguments["serviceUUID"] as String))
+    val deviceId = arguments["deviceId"] as String
+    val serviceUUID = arguments["serviceUUID"] as String
+
+    val service = getPrimaryService(deviceId, serviceUUID)
     if (service != null) {
       result.success(service.toMap())
     } else {
-      result.error("NotFoundError", "NotFoundError: There is no Bluetooth device that matches the specified options.", null)
+      result.notFoundError()
     }
   }
 
   private fun getCharacteristic(arguments: Map<String, Any>, result: Result) {
-    val gatt = bluetoothGatts.find { it.device.address == arguments["deviceId"] }
-    val service = gatt?.getService(UUID.fromString(arguments["serviceUUID"] as String))
-    val characteristic = service?.getCharacteristic(UUID.fromString(arguments["characteristic"] as String))
+    val deviceId = arguments["deviceId"] as String
+    val serviceUUID = arguments["serviceUUID"] as String
+    val characteristicUUID = arguments["characteristic"] as String
+
+    val characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID)
     if (characteristic != null) {
       result.success(characteristic.toMap())
     } else {
-      result.error("NotFoundError", "NotFoundError: There is no Bluetooth device that matches the specified options.", null)
+      result.notFoundError()
     }
   }
 
   private fun readValue(arguments: Map<String, Any>, result: Result) {
     pendingResult = result
-    val gatt = bluetoothGatts.find { it.device.address == arguments["deviceId"] }
-    val service = gatt?.getService(UUID.fromString(arguments["serviceUUID"] as String))
-    val characteristic = service?.getCharacteristic(UUID.fromString(arguments["characteristic"] as String))
+    val deviceId = arguments["deviceId"] as String
+    val serviceUUID = arguments["serviceUUID"] as String
+    val characteristicUUID = arguments["characteristic"] as String
+
+    val gatt = getGatt(deviceId)
+    val characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID)
     if (gatt?.readCharacteristic(characteristic) == false) {
       pendingResult = null
-      result.error("NetworkError", "NetworkError: A network error occurred.", null)
+      result.networkError()
     }
   }
 
   private fun writeValueWithoutResponse(arguments: Map<String, Any>, result: Result) {
     pendingResult = result
-    val gatt = bluetoothGatts.find { it.device.address == arguments["deviceId"] }
-    val service = gatt?.getService(UUID.fromString(arguments["serviceUUID"] as String))
-    val characteristic = service?.getCharacteristic(UUID.fromString(arguments["characteristic"] as String))
-    characteristic?.value = arguments["value"] as ByteArray
+    val deviceId = arguments["deviceId"] as String
+    val serviceUUID = arguments["serviceUUID"] as String
+    val characteristicUUID = arguments["characteristic"] as String
+    val value = arguments["value"] as ByteArray
+
+    val gatt = getGatt(deviceId)
+    val characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID)
+    characteristic?.value = value
     characteristic?.writeType = WRITE_TYPE_NO_RESPONSE
     if (gatt?.writeCharacteristic(characteristic) == false) {
       pendingResult = null
-      result.error("NetworkError", "NetworkError: A network error occurred.", null)
+      result.networkError()
     }
+  }
+
+  private fun getGatt(deviceId: String): BluetoothGatt? {
+    return bluetoothGatts.find { it.device.address == deviceId }
+  }
+
+  private fun getPrimaryService(deviceId: String, serviceUUID: String): BluetoothGattService? {
+    val gatt = getGatt(deviceId)
+    return gatt?.getService(UUID.fromString(serviceUUID))
+  }
+
+  private fun getCharacteristic(deviceId: String, serviceUUID: String, characteristic: String):  BluetoothGattCharacteristic? {
+    val service = getPrimaryService(deviceId, serviceUUID)
+    return service?.getCharacteristic(UUID.fromString(characteristic))
   }
 }

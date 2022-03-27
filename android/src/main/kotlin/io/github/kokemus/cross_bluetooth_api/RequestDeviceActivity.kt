@@ -174,7 +174,7 @@ class RequestDeviceActivity: Activity() {
                 actionView = progressBar
             }
         }
-        // TODO convert options to filters
+
         val filters = mutableListOf<ScanFilter>()
         if (options.filters != null) {
             for (filter in options.filters!!) {

@@ -9,7 +9,7 @@ class UnknownError implements Exception {
       if (e.message!.contains('TypeError')) {
         return TypeError();
       } else if (e.message!.contains('NotFoundError')) {
-        return NotFoundError();
+        return NotFoundError(message: e.message);
       } else if (e.message!.contains('SecurityError')) {
         return SecurityError();
       } else if (e.message!.contains('NetworkError')) {
