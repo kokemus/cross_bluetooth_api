@@ -10,7 +10,7 @@ Implementation follows [Web Bluetooth API](https://developer.mozilla.org/en-US/d
 dependencies:
   cross_bluetooth_api:
     git:
-      url: git://github.com/kokemus/cross_bluetooth_api.git
+      url: https://github.com/kokemus/cross_bluetooth_api.git
 
 ```
 ### Android
@@ -33,7 +33,7 @@ try {
             acceptAllDevices: true
         )
     );
-    final server = await device!.gatt.connect();
+    final server = await device.gatt.connect();
     final service = await server.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
     final characteristic = await service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb');
     final value = await characteristic.readValue();
