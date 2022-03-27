@@ -29,13 +29,13 @@ import 'package:cross_bluetooth_api/cross_bluetooth_api.dart';
 try {
     final device = await Bluetooth.requestDevice(
         RequestDeviceOptions(
-            optionalServices: ['device_information'],
+            optionalServices: ['0000180a-0000-1000-8000-00805f9b34fb'],
             acceptAllDevices: true
         )
     );
     final server = await device!.gatt.connect();
-    final service = await server.getPrimaryService('device_information');
-    final characteristic = await service.getCharacteristic('model_number_string');
+    final service = await server.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
+    final characteristic = await service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb');
     final value = await characteristic.readValue();
 } on NotFoundError catch (e) {
     print(e);
@@ -44,6 +44,8 @@ try {
 } on NetworkError catch (e) {
     print(e);
 } on SecurityError catch (e) {
+    print(e);
+} on UnknownError catch (e) {
     print(e);
 } catch (e) {
     print(e);
