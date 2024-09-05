@@ -5,10 +5,13 @@ import android.bluetooth.*
 import android.bluetooth.BluetoothGatt.GATT_SUCCESS
 import android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
@@ -29,6 +32,22 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "cross_bluetooth_api")
     channel.setMethodCallHandler(this)
+
+    val eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "cross_bluetooth_api/events")
+    eventChannel.setStreamHandler(streamHandler)
+  }
+
+  private var eventSink: EventChannel.EventSink? = null
+  private val handler = Handler(Looper.getMainLooper())
+
+  private val streamHandler = object: EventChannel.StreamHandler {
+    override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+      eventSink = events
+    }
+
+    override fun onCancel(arguments: Any?) {
+      eventSink = null
+    }
   }
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
@@ -63,6 +82,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       RequestDeviceActivity.RESULT_NOT_SUPPORTED_ERROR -> pendingResult?.notSupportedError()
       RequestDeviceActivity.RESULT_INVALID_STATE_ERROR -> pendingResult?.invalidStateError()
     }
+    pendingResult = null
     return false
   }
 
@@ -102,6 +122,10 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
           gatt?.close()
           bluetoothGatts.remove(gatt)
           pendingResult?.success(true)
+          pendingResult = null
+          handler.post {
+            eventSink?.success(mapOf("name" to "gattserverdisconnected"))
+          }
         }
       }
     }
@@ -109,6 +133,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
       super.onServicesDiscovered(gatt, status)
       pendingResult?.success(true)
+      pendingResult = null
     }
 
     override fun onCharacteristicRead(
@@ -122,6 +147,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       } else {
         pendingResult?.networkError()
       }
+      pendingResult = null
     }
 
     override fun onCharacteristicWrite(
@@ -135,6 +161,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       } else {
         pendingResult?.networkError()
       }
+      pendingResult = null
     }
   }
 

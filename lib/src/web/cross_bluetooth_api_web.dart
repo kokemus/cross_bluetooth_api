@@ -17,9 +17,16 @@ class CrossBluetoothApiWeb {
       registrar,
     );
 
+    final PluginEventChannel eventChannel =
+        PluginEventChannel('cross_bluetooth_api/events');
+    eventChannel.setController(controller);
+
     final pluginInstance = CrossBluetoothApiWeb();
     channel.setMethodCallHandler(pluginInstance._handleMethodCall);
   }
+
+  static final StreamController<String> controller =
+      StreamController<String>.broadcast();
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
@@ -60,6 +67,7 @@ class CrossBluetoothApiWeb {
 
   Future connect(Map<String, dynamic> arguments) async {
     final device = _getDevice(arguments['id']);
+    controller.add('ping');
     await device?.gatt?.connect();
   }
 
@@ -67,6 +75,7 @@ class CrossBluetoothApiWeb {
     final device = _getDevice(arguments['id']);
     _devices.remove(device);
     device?.gatt?.disconnect();
+    //controller.add({'name': 'gattserverdisconnected'});
   }
 
   Future getPrimaryService(Map<String, dynamic> arguments) async {

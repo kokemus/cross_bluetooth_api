@@ -38,6 +38,12 @@ class _MyAppState extends State<MyApp> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              StreamBuilder<Device>(
+                  stream: _device?.gattserverdisconnected,
+                  builder: (context, state) {
+                    print(state);
+                    return Text(state.hasData ? 'Disconnected' : '');
+                  }),
               SizedBox(
                 height: 48,
                 child: Padding(

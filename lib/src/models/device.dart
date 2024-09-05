@@ -1,9 +1,17 @@
+import 'package:cross_bluetooth_api/src/models/base.dart';
+
 import 'remote_gatt_server.dart';
 
-class Device {
+class Device extends Base {
   String? id;
   String? name;
   late RemoteGATTServer gatt;
+
+  Stream<Device> get gattserverdisconnected {
+    return events
+        .where((e) => e.name == "gattserverdisconnected")
+        .map((_) => this);
+  }
 
   Device.fromJson(Map<String, dynamic> json) {
     id = json['id'];

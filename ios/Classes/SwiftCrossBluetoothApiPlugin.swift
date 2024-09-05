@@ -5,7 +5,11 @@ import CoreBluetooth
 public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "cross_bluetooth_api", binaryMessenger: registrar.messenger())
+        
+        let eventChannel = FlutterEventChannel(name: "cross_bluetooth_api/events", binaryMessenger: registrar.messenger())
+
         let instance = SwiftCrossBluetoothApiPlugin()
+        eventChannel.setStreamHandler(instance)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
 
@@ -15,6 +19,7 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         }
     }
 
+    private var eventSink: FlutterEventSink?
     private var manager: CBCentralManager!
     private var pendingResult: FlutterResult?
     private var peripherals: [CBPeripheral] = []
@@ -172,6 +177,18 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     }
 }
 
+extension SwiftCrossBluetoothApiPlugin: FlutterStreamHandler {
+    public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+        eventSink = events
+        return nil
+    }
+    
+    public func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        eventSink = nil
+        return nil
+    }
+}
+
 extension SwiftCrossBluetoothApiPlugin: RequestDeviceDelegate {
     func requestDevice(_ requestDevice: RequestDeviceViewController, didRequest peripheral: CBPeripheral) {
         viewController.dismiss(animated: true, completion: nil)
@@ -204,6 +221,7 @@ extension SwiftCrossBluetoothApiPlugin: CBCentralManagerDelegate {
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         peripherals.remove(at: peripherals.firstIndex { $0.identifier == peripheral.identifier } ?? -1)
         pendingResult?(Device.fromPeripheral(peripheral).toMap())
+        eventSink?(["name": "gattserverdisconnected"])
     }
 }
 
