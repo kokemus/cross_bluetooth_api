@@ -14,9 +14,13 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     }
 
     private var viewController: UIViewController {
-        get {
-            return UIApplication.shared.delegate!.window!!.rootViewController!
-        }
+        let windowScenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+        let keyWindow = windowScenes
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }
+
+        return keyWindow!.rootViewController!
     }
 
     private var eventSink: FlutterEventSink?

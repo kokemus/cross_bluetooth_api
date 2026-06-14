@@ -41,11 +41,11 @@ class _MyAppState extends State<MyApp> {
               StreamBuilder<Device>(
                   stream: _device?.gattserverdisconnected,
                   builder: (context, state) {
-                    print(state);
+                    debugPrint(state.toString());
                     return Text(state.hasData ? 'Disconnected' : '');
                   }),
               SizedBox(
-                height: 48,
+                height: 56,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
@@ -92,9 +92,15 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _state = '';
     });
-    _device = await Bluetooth.requestDevice(RequestDeviceOptions(
+    _device = await Bluetooth.requestDevice(
+      RequestDeviceOptions(
         acceptAllDevices: true,
-        optionalServices: ['0000180a-0000-1000-8000-00805f9b34fb']));
+        optionalServices: [
+          '0000180a-0000-1000-8000-00805f9b34fb',
+          '0000180f-0000-1000-8000-00805f9b34fb'
+        ],
+      ),
+    );
     setState(() {
       _state = _device.toString();
     });
@@ -102,16 +108,13 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _state = server.toString();
     });
-    final service =
-        await server.getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb');
+    final modelNumber = await _readModelNumber();
     setState(() {
-      _state = service.uuid;
+      _state = modelNumber;
     });
-    final characteristic =
-        await service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb');
-    final value = await characteristic.readValue();
+    final batteryLevel = await _readBatteryLevel();
     setState(() {
-      _state = value.getString();
+      _state = '$modelNumber $batteryLevel%';
     });
   }
 
@@ -123,5 +126,24 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _state = '';
     });
+  }
+
+  Future<String> _readModelNumber() async {
+    final modelNumberCharacteristic = await _device!.gatt
+        .getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb')
+        .then((service) =>
+            service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb'));
+    final value = await modelNumberCharacteristic.readValue();
+    return value.getString();
+  }
+
+  Future<int> _readBatteryLevel() async {
+    final batteryLevelCharacteristic = await _device!.gatt
+        .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
+        .then((service) =>
+            service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'));
+    final value = await batteryLevelCharacteristic.readValue();
+    final batteryLevel = value.getUint8(0); // 0..100
+    return batteryLevel;
   }
 }

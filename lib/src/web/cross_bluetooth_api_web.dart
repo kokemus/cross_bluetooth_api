@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'dart:js_interop';
 import 'package:cross_bluetooth_api/src/web/js/bluetooth_remote_gatt_service.dart';
-import 'package:js/js_util.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 import 'js/bluetooth.dart';
 import 'js/bluetooth_device.dart';
 import 'js/bluetooth_remote_gatt_characteristic.dart';
+import 'js/request_options.dart';
 
 class CrossBluetoothApiWeb {
   static void registerWith(Registrar registrar) {
@@ -17,8 +17,9 @@ class CrossBluetoothApiWeb {
       registrar,
     );
 
-    final PluginEventChannel eventChannel =
-        PluginEventChannel('cross_bluetooth_api/events');
+    const PluginEventChannel eventChannel = PluginEventChannel(
+      'cross_bluetooth_api/events',
+    );
     eventChannel.setController(controller);
 
     final pluginInstance = CrossBluetoothApiWeb();
@@ -44,7 +45,8 @@ class CrossBluetoothApiWeb {
         return await readValue(call.arguments.cast<String, dynamic>());
       case 'writeValueWithoutResponse':
         return await writeValueWithoutResponse(
-            call.arguments.cast<String, dynamic>());
+          call.arguments.cast<String, dynamic>(),
+        );
       default:
         throw PlatformException(
           code: 'Unimplemented',
@@ -57,9 +59,10 @@ class CrossBluetoothApiWeb {
   final List<BluetoothDevice> _devices = [];
 
   Future<Map<String, dynamic>> requestDevice(
-      Map<String, dynamic> arguments) async {
-    final object =
-        await promiseToFuture(NativeBluetooth.requestDevice(jsify(arguments)));
+    Map<String, dynamic> arguments,
+  ) async {
+    final options = RequestOptions.fromMap(arguments);
+    final object = await nativeBluetooth.requestTypedDevice(options).toDart;
     final device = BluetoothDevice.fromObject(object);
     _devices.add(device);
     return device.toJson();
@@ -80,28 +83,40 @@ class CrossBluetoothApiWeb {
 
   Future getPrimaryService(Map<String, dynamic> arguments) async {
     final service = await _getPrimaryService(
-        arguments['deviceId'], arguments['serviceUUID']);
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+    );
     return service?.toJson();
   }
 
   Future getCharacteristic(Map<String, dynamic> arguments) async {
-    final characteristic = await _getCharacteristic(arguments['deviceId'],
-        arguments['serviceUUID'], arguments['characteristic']);
+    final characteristic = await _getCharacteristic(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
     return characteristic?.toJson();
   }
 
   Future readValue(Map<String, dynamic> arguments) async {
-    final characteristic = await _getCharacteristic(arguments['deviceId'],
-        arguments['serviceUUID'], arguments['characteristic']);
+    final characteristic = await _getCharacteristic(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
     final value = await characteristic?.readValue();
     return Uint8List.view(value!.buffer);
   }
 
   Future writeValueWithoutResponse(Map<String, dynamic> arguments) async {
-    final characteristic = await _getCharacteristic(arguments['deviceId'],
-        arguments['serviceUUID'], arguments['characteristic']);
-    await characteristic
-        ?.writeValueWithoutResponse(ByteData.sublistView(arguments['value']));
+    final characteristic = await _getCharacteristic(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
+    await characteristic?.writeValueWithoutResponse(
+      ByteData.sublistView(arguments['value']),
+    );
   }
 
   BluetoothDevice? _getDevice(String deviceId) {
@@ -109,13 +124,18 @@ class CrossBluetoothApiWeb {
   }
 
   Future<BluetoothRemoteGATTService?> _getPrimaryService(
-      String deviceId, String serviceUUID) async {
+    String deviceId,
+    String serviceUUID,
+  ) async {
     final device = _getDevice(deviceId);
     return await device?.gatt?.getPrimaryService(serviceUUID);
   }
 
   Future<BluetoothRemoteGATTCharacteristic?> _getCharacteristic(
-      String deviceId, String serviceUUID, String characteristic) async {
+    String deviceId,
+    String serviceUUID,
+    String characteristic,
+  ) async {
     final service = await _getPrimaryService(deviceId, serviceUUID);
     return await service?.getCharacteristic(characteristic);
   }
