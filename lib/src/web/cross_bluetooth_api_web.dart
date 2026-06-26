@@ -26,8 +26,8 @@ class CrossBluetoothApiWeb {
     channel.setMethodCallHandler(pluginInstance._handleMethodCall);
   }
 
-  static final StreamController<String> controller =
-      StreamController<String>.broadcast();
+  static final StreamController<Map<String, String>> controller =
+      StreamController<Map<String, String>>.broadcast();
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
@@ -64,21 +64,19 @@ class CrossBluetoothApiWeb {
     final options = RequestOptions.fromMap(arguments);
     final object = await nativeBluetooth.requestTypedDevice(options).toDart;
     final device = BluetoothDevice.fromObject(object);
+    device.addEventListener('gattserverdisconnected', _onDisconnected);
     _devices.add(device);
     return device.toJson();
   }
 
   Future connect(Map<String, dynamic> arguments) async {
     final device = _getDevice(arguments['id']);
-    controller.add('ping');
     await device?.gatt?.connect();
   }
 
   Future disconnect(Map<String, dynamic> arguments) async {
     final device = _getDevice(arguments['id']);
-    _devices.remove(device);
     device?.gatt?.disconnect();
-    //controller.add({'name': 'gattserverdisconnected'});
   }
 
   Future getPrimaryService(Map<String, dynamic> arguments) async {
@@ -117,6 +115,12 @@ class CrossBluetoothApiWeb {
     await characteristic?.writeValueWithoutResponse(
       ByteData.sublistView(arguments['value']),
     );
+  }
+
+  void _onDisconnected(event) {
+    final device = BluetoothDevice.fromObject(event.target);
+    _devices.remove(device);
+    controller.add({'name': 'gattserverdisconnected'});
   }
 
   BluetoothDevice? _getDevice(String deviceId) {
