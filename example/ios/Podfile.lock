@@ -14,7 +14,7 @@ EXTERNAL SOURCES:
     :path: Flutter
 
 SPEC CHECKSUMS:
-  cross_bluetooth_api: b91cb4a4dc5f7dce4e9791d8a70b5a07d6a20f68
+  cross_bluetooth_api: 2c7a7d5f5ed72483f21787b7721e9e193573335f
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
 
 PODFILE CHECKSUM: 0dbd5a87e0ace00c9610d2037ac22083a01f861d

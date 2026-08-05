@@ -109,7 +109,7 @@ class RequestDeviceViewController: UIViewController {
                 }
             }
             if options.optionalServices != nil {
-                for service in options.optionalServices! {
+                for _ in options.optionalServices! {
                     // post filtering
                 }
             }
