@@ -29,7 +29,7 @@ class RequestDeviceViewController: UIViewController {
         return view
     }()
     private lazy var tableView: UITableView = {
-        let view = UITableView()
+        let view = UITableView(frame: .zero, style: .insetGrouped)
         view.tableFooterView = UIView()
         view.dataSource = self
         view.delegate = self
@@ -52,9 +52,6 @@ class RequestDeviceViewController: UIViewController {
     }
 
     override func viewDidLoad() {
-        if #available(iOS 13.0, *) {
-            view.backgroundColor = .systemBackground
-        }
         addViews()
         setupConstraints()
         NotificationCenter.default.addObserver(self, selector: #selector(willResignActive), name: UIApplication.willResignActiveNotification, object: nil)
@@ -150,6 +147,9 @@ extension RequestDeviceViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        if #available(iOS 14.0, *) {
+            cell.backgroundConfiguration = UIBackgroundConfiguration.listGroupedCell()
+        }
         let peripheral = peripherals[indexPath.row]
         cell.textLabel?.text = peripheral.name ?? "Unknown (\(peripheral.identifier))"
         return cell
