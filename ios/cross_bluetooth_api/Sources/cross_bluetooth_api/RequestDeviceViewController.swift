@@ -74,7 +74,14 @@ class RequestDeviceViewController: UIViewController {
     }
     
     private func setupConstraints() {
+        navBar.translatesAutoresizingMaskIntoConstraints = false
         tableView.translatesAutoresizingMaskIntoConstraints = false
+
+        navBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16).isActive = true
+        navBar.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+        navBar.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
+        navBar.heightAnchor.constraint(equalToConstant: 56).isActive = true
+
         tableView.topAnchor.constraint(equalTo: navBar.bottomAnchor).isActive = true
         tableView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
         tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
