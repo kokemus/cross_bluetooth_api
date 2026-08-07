@@ -8,9 +8,10 @@ class Device extends Base {
   late RemoteGATTServer gatt;
 
   Stream<Device> get gattserverdisconnected {
-    return events
-        .where((e) => e.name == "gattserverdisconnected")
-        .map((_) => this);
+    return events.where((e) => e.name == "gattserverdisconnected").map((_) {
+      gatt.connected = false;
+      return this;
+    });
   }
 
   Device.fromJson(Map<String, dynamic> json) {

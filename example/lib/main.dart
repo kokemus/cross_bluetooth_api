@@ -30,57 +30,48 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Cross Bluetooth API'),
-        ),
+        appBar: AppBar(title: const Text('Cross Bluetooth API')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              StreamBuilder<Device>(
-                  stream: _device?.gattserverdisconnected,
-                  builder: (context, state) {
-                    debugPrint(state.toString());
-                    return Text(state.hasData ? 'Disconnected' : '');
-                  }),
               SizedBox(
                 height: 56,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    _state ?? '',
-                    textAlign: TextAlign.center,
-                  ),
+                  child: Text(_state ?? '', textAlign: TextAlign.center),
                 ),
               ),
               OutlinedButton(
-                  onPressed: () async {
-                    try {
-                      _loading = true;
-                      if (!(_device?.gatt.connected ?? false)) {
-                        await _connectAndRead();
-                      } else {
-                        await _disconnect();
-                      }
-                      _loading = false;
-                    } on UnknownError catch (e) {
-                      _loading = false;
-                      setState(() {
-                        _state = e.message;
-                      });
+                onPressed: () async {
+                  try {
+                    _loading = true;
+                    if (!(_device?.gatt.connected ?? false)) {
+                      await _connectAndRead();
+                    } else {
+                      await _disconnect();
                     }
-                  },
-                  child: !_loading
-                      ? Text(!(_device?.gatt.connected ?? false)
-                          ? 'Scan'
-                          : 'Disconnect')
-                      : const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          )))
+                    _loading = false;
+                  } on UnknownError catch (e) {
+                    _loading = false;
+                    setState(() {
+                      _state = e.message;
+                    });
+                  }
+                },
+                child: !_loading
+                    ? Text(
+                        !(_device?.gatt.connected ?? false)
+                            ? 'Scan'
+                            : 'Disconnect',
+                      )
+                    : const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+              ),
             ],
           ),
         ),
@@ -97,10 +88,15 @@ class _MyAppState extends State<MyApp> {
         acceptAllDevices: true,
         optionalServices: [
           '0000180a-0000-1000-8000-00805f9b34fb',
-          '0000180f-0000-1000-8000-00805f9b34fb'
+          '0000180f-0000-1000-8000-00805f9b34fb',
         ],
       ),
     );
+    _device?.gattserverdisconnected.listen((_) {
+      setState(() {
+        _state = '${_device?.name} disconnected';
+      });
+    });
     setState(() {
       _state = _device.toString();
     });
@@ -131,8 +127,10 @@ class _MyAppState extends State<MyApp> {
   Future<String> _readModelNumber() async {
     final modelNumberCharacteristic = await _device!.gatt
         .getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb')
-        .then((service) =>
-            service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb'));
+        .then(
+          (service) =>
+              service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb'),
+        );
     final value = await modelNumberCharacteristic.readValue();
     return value.getString();
   }
@@ -140,8 +138,10 @@ class _MyAppState extends State<MyApp> {
   Future<int> _readBatteryLevel() async {
     final batteryLevelCharacteristic = await _device!.gatt
         .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
-        .then((service) =>
-            service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'));
+        .then(
+          (service) =>
+              service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'),
+        );
     final value = await batteryLevelCharacteristic.readValue();
     final batteryLevel = value.getUint8(0); // 0..100
     return batteryLevel;
