@@ -100,6 +100,22 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
                     pendingResult: result
                 ).execute()
             }
+        case .startNotifications:
+            Task {
+                await StartNotificationsCommand(
+                    manager: manager,
+                    arguments: arguments,
+                    pendingResult: result
+                ).execute()
+            }
+        case .stopNotifications:
+            Task {
+                await StopNotificationsCommand(
+                    manager: manager,
+                    arguments: arguments,
+                    pendingResult: result
+                ).execute()
+            }
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -136,7 +152,9 @@ extension SwiftCrossBluetoothApiPlugin: FlutterStreamHandler {
 extension SwiftCrossBluetoothApiPlugin: BluetoothManagerDelegete {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {}
 
-    public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {}
+    public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        manager.addPeripheral(peripheral).addDelegate(self)
+    }
 
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {}
 
@@ -146,12 +164,22 @@ extension SwiftCrossBluetoothApiPlugin: BluetoothManagerDelegete {
     }
 }
 
-extension SwiftCrossBluetoothApiPlugin: CBPeripheralDelegate {
+extension SwiftCrossBluetoothApiPlugin: DeviceManagerDelegate {
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {}
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {}
 
-    public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {}
+    public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        if error == nil {
+            eventSink?([
+                "name": "characteristicvaluechanged",
+                "deviceId": peripheral.identifier.uuidString,
+                "serviceUUID": characteristic.service!.uuid.uuidString,
+                "characteristicUUID": characteristic.uuid.uuidString,
+                "value": characteristic.value ?? Data()
+            ])
+        }
+    }
 
     public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {}
 }

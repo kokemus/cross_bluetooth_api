@@ -20,11 +20,13 @@ public class WriteValueWithoutResponseCommand: BaseCommand {
             let serviceUUIDString = arguments["serviceUUID"] as? String,
             let characteristicUUIDString = arguments["characteristic"] as? String,
             let value = arguments["value"] as? Data,
-            let peripheral = manager.peripheral(for: deviceId)
+            let deviceManager = manager.deviceManager(for: deviceId)
         else {
             pendingResult(writeValueWithoutResponseNetworkError)
             return
         }
+
+        let peripheral = deviceManager.peripheral
 
         let serviceUUID = CBUUID(string: serviceUUIDString)
         guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {

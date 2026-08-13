@@ -1,5 +1,6 @@
 package io.github.kokemus.cross_bluetooth_api
 
+import android.Manifest
 import android.app.Activity
 import android.bluetooth.*
 import android.bluetooth.BluetoothGatt.GATT_SUCCESS
@@ -7,7 +8,7 @@ import android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
-import androidx.annotation.NonNull
+import androidx.annotation.RequiresPermission
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -27,9 +28,14 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
   private var activity: Activity? = null
   private var activityPluginBinding: ActivityPluginBinding? = null
   private var pendingResult: Result? = null
+  private var pendingNotificationResult: Result? = null
   private var bluetoothGatts: MutableList<BluetoothGatt> = mutableListOf()
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+  companion object {
+    private val clientCharacteristicConfigUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+  }
+
+  override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "cross_bluetooth_api")
     channel.setMethodCallHandler(this)
 
@@ -50,7 +56,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     }
   }
 
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
   }
 
@@ -86,7 +92,8 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     return false
   }
 
-  override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+  override fun onMethodCall(call: MethodCall, result: Result) {
     @Suppress("UNCHECKED_CAST")
     val arguments = call.arguments as HashMap<String, Any>
     when (call.method) {
@@ -97,6 +104,8 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       "getCharacteristic" -> getCharacteristic(arguments, result)
       "readValue" -> readValue(arguments, result)
       "writeValueWithoutResponse" -> writeValueWithoutResponse(arguments, result)
+      "startNotifications" -> startNotifications(arguments, result)
+      "stopNotifications" -> stopNotifications(arguments, result)
       else -> result.notImplemented()
     }
   }
@@ -111,6 +120,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
   }
 
   private val callback = object: BluetoothGattCallback() {
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
       super.onConnectionStateChange(gatt, status, newState)
       when (newState) {
@@ -137,13 +147,14 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     }
 
     override fun onCharacteristicRead(
-      gatt: BluetoothGatt?,
-      characteristic: BluetoothGattCharacteristic?,
+      gatt: BluetoothGatt,
+      characteristic: BluetoothGattCharacteristic,
+      value: ByteArray,
       status: Int
     ) {
-      super.onCharacteristicRead(gatt, characteristic, status)
+      super.onCharacteristicRead(gatt, characteristic, value, status)
       if (status == GATT_SUCCESS) {
-        pendingResult?.success(characteristic?.value)
+        pendingResult?.success(value)
       } else {
         pendingResult?.networkError()
       }
@@ -163,8 +174,46 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
       }
       pendingResult = null
     }
+
+    override fun onDescriptorWrite(
+      gatt: BluetoothGatt?,
+      descriptor: BluetoothGattDescriptor?,
+      status: Int
+    ) {
+      super.onDescriptorWrite(gatt, descriptor, status)
+      if (descriptor?.uuid != clientCharacteristicConfigUuid) {
+        return
+      }
+
+      if (status == GATT_SUCCESS) {
+        pendingNotificationResult?.success(true)
+      } else {
+        pendingNotificationResult?.networkError()
+      }
+      pendingNotificationResult = null
+    }
+
+    override fun onCharacteristicChanged(
+      gatt: BluetoothGatt,
+      characteristic: BluetoothGattCharacteristic,
+      value: ByteArray
+    ) {
+      super.onCharacteristicChanged(gatt, characteristic, value)
+      handler.post {
+        eventSink?.success(
+          mapOf(
+            "name" to "characteristicvaluechanged",
+            "deviceId" to gatt.device.address,
+            "serviceUUID" to characteristic.service.uuid.toString(),
+            "characteristicUUID" to characteristic.uuid.toString(),
+            "value" to characteristic.value
+          )
+        )
+      }
+    }
   }
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
   private fun connect(arguments: Map<String, Any>, result: Result) {
     pendingResult = result
     val device = Device.fromMap(arguments)
@@ -177,6 +226,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     }
   }
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
   private fun disconnect(arguments: Map<String, Any>, result: Result) {
     pendingResult = result
     val gatt = getGatt(arguments["id"] as String)
@@ -208,6 +258,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     }
   }
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
   private fun readValue(arguments: Map<String, Any>, result: Result) {
     pendingResult = result
     val deviceId = arguments["deviceId"] as String
@@ -222,6 +273,7 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     }
   }
 
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
   private fun writeValueWithoutResponse(arguments: Map<String, Any>, result: Result) {
     pendingResult = result
     val deviceId = arguments["deviceId"] as String
@@ -235,6 +287,81 @@ class CrossBluetoothApiPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, 
     characteristic?.writeType = WRITE_TYPE_NO_RESPONSE
     if (gatt?.writeCharacteristic(characteristic) == false) {
       pendingResult = null
+      result.networkError()
+    }
+  }
+
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+  private fun startNotifications(arguments: Map<String, Any>, result: Result) {
+    val deviceId = arguments["deviceId"] as String
+    val serviceUUID = arguments["serviceUUID"] as String
+    val characteristicUUID = arguments["characteristic"] as String
+
+    val gatt = getGatt(deviceId)
+    val characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID)
+    if (gatt == null || characteristic == null) {
+      result.notFoundError()
+      return
+    }
+
+    val supportsNotify = characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0
+    val supportsIndicate = characteristic.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0
+    if (!supportsNotify && !supportsIndicate) {
+      result.notSupportedError()
+      return
+    }
+
+    val cccd = characteristic.getDescriptor(clientCharacteristicConfigUuid)
+    if (cccd == null) {
+      result.notSupportedError()
+      return
+    }
+
+    val enableValue = if (supportsNotify) {
+      BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+    } else {
+      BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+    }
+
+    if (gatt.setCharacteristicNotification(characteristic, true)) {
+      pendingNotificationResult = result
+      cccd.value = enableValue
+      if (!gatt.writeDescriptor(cccd)) {
+        pendingNotificationResult = null
+        result.networkError()
+      }
+    } else {
+      result.networkError()
+    }
+  }
+
+  @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+  private fun stopNotifications(arguments: Map<String, Any>, result: Result) {
+    val deviceId = arguments["deviceId"] as String
+    val serviceUUID = arguments["serviceUUID"] as String
+    val characteristicUUID = arguments["characteristic"] as String
+
+    val gatt = getGatt(deviceId)
+    val characteristic = getCharacteristic(deviceId, serviceUUID, characteristicUUID)
+    if (gatt == null || characteristic == null) {
+      result.notFoundError()
+      return
+    }
+
+    val cccd = characteristic.getDescriptor(clientCharacteristicConfigUuid)
+    if (cccd == null) {
+      result.notSupportedError()
+      return
+    }
+
+    if (gatt.setCharacteristicNotification(characteristic, false)) {
+      pendingNotificationResult = result
+      cccd.value = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+      if (!gatt.writeDescriptor(cccd)) {
+        pendingNotificationResult = null
+        result.networkError()
+      }
+    } else {
       result.networkError()
     }
   }

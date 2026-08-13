@@ -25,14 +25,13 @@ public class ConnectCommand: BaseCommand, BluetoothManagerDelegete {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
             guard let deviceId = arguments["id"] as? String,
-                  let peripheral = manager.retrievePeripheral(deviceId: deviceId) else {
+                  let deviceManager = manager.retrieveDeviceManager(deviceId: deviceId) else {
                 pendingResult(connectNetworkError)
                 continuation.resume()
                 return
             }
 
-            manager.addPeripheral(peripheral)
-            manager.central.connect(peripheral, options: nil)
+            manager.central.connect(deviceManager.peripheral, options: nil)
         }
     }
     

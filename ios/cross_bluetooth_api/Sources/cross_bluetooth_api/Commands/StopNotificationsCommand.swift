@@ -2,7 +2,7 @@ import Foundation
 import Flutter
 import CoreBluetooth
 
-public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
+public class StopNotificationsCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
     private var deviceManager: DeviceManager?
     private var continuation: CheckedContinuation<Void, Never>?
@@ -16,7 +16,7 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
         pendingResult: @escaping FlutterResult
     ) {
         self.manager = manager
-        super.init(id: .readValue, arguments: arguments, pendingResult: pendingResult)
+        super.init(id: .stopNotifications, arguments: arguments, pendingResult: pendingResult)
     }
 
     deinit {
@@ -35,7 +35,7 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
                 let characteristicUUIDString = arguments["characteristic"] as? String,
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(readValueNetworkError)
+                pendingResult(stopNotificationsNetworkError)
                 continuation.resume()
                 return
             }
@@ -44,17 +44,16 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
             deviceManager.addDelegate(self)
 
             let peripheral = deviceManager.peripheral
-
             let serviceUUID = CBUUID(string: serviceUUIDString)
             guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
-                pendingResult(readValueNotFoundError)
+                pendingResult(stopNotificationsNotFoundError)
                 continuation.resume()
                 return
             }
 
             let characteristicUUID = CBUUID(string: characteristicUUIDString)
             guard let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID }) else {
-                pendingResult(readValueNotFoundError)
+                pendingResult(stopNotificationsNotFoundError)
                 continuation.resume()
                 return
             }
@@ -62,40 +61,44 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
             targetDeviceId = deviceId
             targetServiceUUID = serviceUUID
             targetCharacteristicUUID = characteristicUUID
-            peripheral.readValue(for: characteristic)
+            peripheral.setNotifyValue(false, for: characteristic)
         }
     }
 
-    public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        defer {
-            continuation?.resume()
-        }
-
-        if error != nil {
-            pendingResult(readValueNetworkError)
-            return
-        }
-
+    public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         guard
             peripheral.identifier.uuidString == targetDeviceId,
             characteristic.service?.uuid == targetServiceUUID,
             characteristic.uuid == targetCharacteristicUUID
         else {
-            pendingResult(readValueNotFoundError)
             return
         }
 
-        pendingResult(characteristic.value)
+        defer {
+            continuation?.resume()
+        }
+
+        if error != nil {
+            pendingResult(stopNotificationsNetworkError)
+            return
+        }
+
+        if characteristic.isNotifying {
+            pendingResult(stopNotificationsNetworkError)
+            return
+        }
+
+        pendingResult(true)
     }
 }
 
-private let readValueNetworkError = FlutterError(
+private let stopNotificationsNetworkError = FlutterError(
     code: "NetworkError",
     message: "NetworkError: A network error occurred.",
     details: nil
 )
 
-private let readValueNotFoundError = FlutterError(
+private let stopNotificationsNotFoundError = FlutterError(
     code: "NotFoundError",
     message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
     details: nil

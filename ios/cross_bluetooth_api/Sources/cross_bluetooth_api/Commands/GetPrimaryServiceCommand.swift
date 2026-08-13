@@ -2,8 +2,9 @@ import Foundation
 import Flutter
 import CoreBluetooth
 
-public class GetPrimaryServiceCommand: BaseCommand, CBPeripheralDelegate {
+public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
+    private var deviceManager: DeviceManager?
     private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
@@ -17,22 +18,29 @@ public class GetPrimaryServiceCommand: BaseCommand, CBPeripheralDelegate {
         super.init(id: .getPrimaryService, arguments: arguments, pendingResult: pendingResult)
     }
 
+    deinit {
+        if let deviceManager {
+            deviceManager.removeDelegate(self)
+        }
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
 
             guard let deviceId = arguments["deviceId"] as? String,
                   let serviceUUIDString = arguments["serviceUUID"] as? String,
-                  let peripheral = manager.peripheral(for: deviceId) else {
+                  let deviceManager = manager.deviceManager(for: deviceId) else {
                 pendingResult(getPrimaryServiceNetworkError)
                 continuation.resume()
                 return
             }
 
+            self.deviceManager = deviceManager
+            deviceManager.addDelegate(self)
             targetDeviceId = deviceId
             targetServiceUUID = CBUUID(string: serviceUUIDString)
-            peripheral.delegate = self
-            peripheral.discoverServices([targetServiceUUID!])
+            deviceManager.peripheral.discoverServices([targetServiceUUID!])
         }
     }
 

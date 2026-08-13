@@ -5,9 +5,29 @@ import 'errors.dart';
 
 class Event {
   late String name;
+  String? deviceId;
+  String? serviceUUID;
+  String? characteristicUUID;
+  ByteData? value;
 
-  Event.fromJson(Map json) {
+  Event.fromJson(Map<dynamic, dynamic> json) {
     name = json['name'];
+    deviceId = json['deviceId'];
+    serviceUUID = json['serviceUUID'];
+    characteristicUUID = json['characteristicUUID'];
+
+    final eventValue = json['value'];
+    if (eventValue is ByteData) {
+      value = eventValue;
+    } else if (eventValue is Uint8List) {
+      value = eventValue.buffer.asByteData(
+        eventValue.offsetInBytes,
+        eventValue.lengthInBytes,
+      );
+    } else if (eventValue is List<int>) {
+      final bytes = Uint8List.fromList(eventValue);
+      value = bytes.buffer.asByteData();
+    }
   }
 }
 
@@ -21,9 +41,8 @@ class Base {
   }
 
   Stream<Event> get events {
-    return eventChannel
-        .receiveBroadcastStream()
-        .cast()
-        .map((event) => Event.fromJson(event));
+    return eventChannel.receiveBroadcastStream().cast().map(
+      (event) => Event.fromJson(event),
+    );
   }
 }

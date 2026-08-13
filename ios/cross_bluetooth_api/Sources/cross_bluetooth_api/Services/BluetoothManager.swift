@@ -5,7 +5,7 @@ protocol BluetoothManagerDelegete: AnyObject, CBCentralManagerDelegate {}
 final class BluetoothManager: NSObject {
 
     let central: CBCentralManager
-    private var peripheralsById: [String: CBPeripheral] = [:]
+    private var deviceManagersById: [String: DeviceManager] = [:]
 
     private let delegates = NSHashTable<AnyObject>.weakObjects()
 
@@ -36,28 +36,36 @@ final class BluetoothManager: NSObject {
         delegates.removeAllObjects()
     }
 
-    func peripheral(for deviceId: String) -> CBPeripheral? {
-        return peripheralsById[deviceId]
+    func deviceManager(for deviceId: String) -> DeviceManager? {
+        return deviceManagersById[deviceId]
     }
 
-    func addPeripheral(_ peripheral: CBPeripheral) {
-        peripheralsById[peripheral.identifier.uuidString] = peripheral
+    @discardableResult
+    func addPeripheral(_ peripheral: CBPeripheral) -> DeviceManager {
+        let id = peripheral.identifier.uuidString
+        if let existing = deviceManagersById[id] {
+            return existing
+        }
+
+        let manager = DeviceManager(peripheral: peripheral)
+        deviceManagersById[id] = manager
+        return manager
     }
 
     func removePeripheral(_ peripheral: CBPeripheral) {
-        peripheralsById.removeValue(forKey: peripheral.identifier.uuidString)
+        deviceManagersById.removeValue(forKey: peripheral.identifier.uuidString)
     }
 
     func removePeripheral(deviceId: String) {
-        peripheralsById.removeValue(forKey: deviceId)
+        deviceManagersById.removeValue(forKey: deviceId)
     }
 
     func removeAllPeripherals() {
-        peripheralsById.removeAll()
+        deviceManagersById.removeAll()
     }
 
-    func retrievePeripheral(deviceId: String) -> CBPeripheral? {
-        if let cached = peripheralsById[deviceId] {
+    func retrieveDeviceManager(deviceId: String) -> DeviceManager? {
+        if let cached = deviceManagersById[deviceId] {
             return cached
         }
 
@@ -70,7 +78,11 @@ final class BluetoothManager: NSObject {
         }
 
         addPeripheral(peripheral)
-        return peripheral
+        return deviceManagersById[deviceId]
+    }
+
+    func peripheral(for deviceId: String) -> CBPeripheral? {
+        return deviceManagersById[deviceId]?.peripheral
     }
 
     private func notify(

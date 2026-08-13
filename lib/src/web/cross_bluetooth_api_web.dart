@@ -26,8 +26,10 @@ class CrossBluetoothApiWeb {
     channel.setMethodCallHandler(pluginInstance._handleMethodCall);
   }
 
-  static final StreamController<Map<String, String>> controller =
-      StreamController<Map<String, String>>.broadcast();
+  static final StreamController<Map<String, dynamic>> controller =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  final Map<String, EventListener> _characteristicListeners = {};
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
@@ -47,6 +49,10 @@ class CrossBluetoothApiWeb {
         return await writeValueWithoutResponse(
           call.arguments.cast<String, dynamic>(),
         );
+      case 'startNotifications':
+        return await startNotifications(call.arguments.cast<String, dynamic>());
+      case 'stopNotifications':
+        return await stopNotifications(call.arguments.cast<String, dynamic>());
       default:
         throw PlatformException(
           code: 'Unimplemented',
@@ -117,6 +123,71 @@ class CrossBluetoothApiWeb {
     );
   }
 
+  Future startNotifications(Map<String, dynamic> arguments) async {
+    final characteristic = await _getCharacteristic(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
+    if (characteristic == null) {
+      return;
+    }
+
+    final listenerKey = _listenerKey(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
+    _characteristicListeners.putIfAbsent(listenerKey, () {
+      return (event) {
+        final value = characteristic.getValue();
+        if (value == null) {
+          return;
+        }
+
+        controller.add({
+          'name': 'characteristicvaluechanged',
+          'deviceId': arguments['deviceId'],
+          'serviceUUID': arguments['serviceUUID'],
+          'characteristicUUID': arguments['characteristic'],
+          'value': Uint8List.view(value.buffer),
+        });
+      };
+    });
+
+    final listener = _characteristicListeners[listenerKey]!;
+    characteristic.addEventListener('characteristicvaluechanged', listener);
+    await characteristic.startNotifications();
+    return true;
+  }
+
+  Future stopNotifications(Map<String, dynamic> arguments) async {
+    final characteristic = await _getCharacteristic(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
+    if (characteristic == null) {
+      return;
+    }
+
+    final listenerKey = _listenerKey(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
+    final listener = _characteristicListeners.remove(listenerKey);
+    if (listener != null) {
+      characteristic.removeEventListener(
+        'characteristicvaluechanged',
+        listener,
+      );
+    }
+
+    await characteristic.stopNotifications();
+    return true;
+  }
+
   void _onDisconnected(event) {
     final device = BluetoothDevice.fromObject(event.target);
     _devices.remove(device);
@@ -142,5 +213,13 @@ class CrossBluetoothApiWeb {
   ) async {
     final service = await _getPrimaryService(deviceId, serviceUUID);
     return await service?.getCharacteristic(characteristic);
+  }
+
+  String _listenerKey(
+    String deviceId,
+    String serviceUUID,
+    String characteristic,
+  ) {
+    return '$deviceId/$serviceUUID/$characteristic';
   }
 }

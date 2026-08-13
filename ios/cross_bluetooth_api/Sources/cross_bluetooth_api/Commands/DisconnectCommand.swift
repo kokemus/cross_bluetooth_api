@@ -26,14 +26,14 @@ public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
             guard let deviceId = arguments["id"] as? String,
-                  let peripheral = manager.peripheral(for: deviceId) else {
+                  let deviceManager = manager.deviceManager(for: deviceId) else {
                 pendingResult(disconnectNetworkError)
                 continuation.resume()
                 return
             }
 
             targetDeviceId = deviceId
-            manager.central.cancelPeripheralConnection(peripheral)
+            manager.central.cancelPeripheralConnection(deviceManager.peripheral)
         }
     }
 

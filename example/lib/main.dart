@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,7 +25,15 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String? _state;
   Device? _device;
+  String _modelNumber = '';
   bool _loading = false;
+  StreamSubscription<dynamic>? _batterySubscription;
+
+  @override
+  void dispose() {
+    _stopBatteryNotifications();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,16 +114,19 @@ class _MyAppState extends State<MyApp> {
       _state = server.toString();
     });
     final modelNumber = await _readModelNumber();
+    _modelNumber = modelNumber;
     setState(() {
       _state = modelNumber;
     });
     final batteryLevel = await _readBatteryLevel();
+    await _startBatteryNotifications();
     setState(() {
       _state = '$modelNumber $batteryLevel%';
     });
   }
 
   Future _disconnect() async {
+    await _stopBatteryNotifications();
     setState(() {
       _state = '';
     });
@@ -145,5 +157,42 @@ class _MyAppState extends State<MyApp> {
     final value = await batteryLevelCharacteristic.readValue();
     final batteryLevel = value.getUint8(0); // 0..100
     return batteryLevel;
+  }
+
+  Future<void> _startBatteryNotifications() async {
+    final batteryLevelCharacteristic = await _device!.gatt
+        .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
+        .then(
+          (service) =>
+              service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'),
+        );
+
+    await _batterySubscription?.cancel();
+    _batterySubscription = batteryLevelCharacteristic.characteristicvaluechanged
+        .listen((c) {
+          final currentValue = c.value;
+          if (currentValue == null || currentValue.lengthInBytes == 0) {
+            return;
+          }
+
+          final batteryLevel = currentValue.getUint8(0);
+          setState(() {
+            _state = '$_modelNumber $batteryLevel%';
+          });
+        });
+    await batteryLevelCharacteristic.startNotifications();
+  }
+
+  Future<void> _stopBatteryNotifications() async {
+    await _batterySubscription?.cancel();
+    _batterySubscription = null;
+
+    final batteryLevelCharacteristic = await _device!.gatt
+        .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
+        .then(
+          (service) =>
+              service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'),
+        );
+    await batteryLevelCharacteristic.stopNotifications();
   }
 }

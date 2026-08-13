@@ -2,8 +2,9 @@ import Foundation
 import Flutter
 import CoreBluetooth
 
-public class GetCharacteristicCommand: BaseCommand, CBPeripheralDelegate {
+public class GetCharacteristicCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
+    private var deviceManager: DeviceManager?
     private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
@@ -18,6 +19,12 @@ public class GetCharacteristicCommand: BaseCommand, CBPeripheralDelegate {
         super.init(id: .getCharacteristic, arguments: arguments, pendingResult: pendingResult)
     }
 
+    deinit {
+        if let deviceManager {
+            deviceManager.removeDelegate(self)
+        }
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
@@ -26,12 +33,17 @@ public class GetCharacteristicCommand: BaseCommand, CBPeripheralDelegate {
                 let deviceId = arguments["deviceId"] as? String,
                 let serviceUUIDString = arguments["serviceUUID"] as? String,
                 let characteristicUUIDString = arguments["characteristic"] as? String,
-                let peripheral = manager.peripheral(for: deviceId)
+                let deviceManager = manager.deviceManager(for: deviceId)
             else {
                 pendingResult(getCharacteristicNetworkError)
                 continuation.resume()
                 return
             }
+
+            self.deviceManager = deviceManager
+            deviceManager.addDelegate(self)
+
+            let peripheral = deviceManager.peripheral
 
             let serviceUUID = CBUUID(string: serviceUUIDString)
             guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
@@ -43,8 +55,6 @@ public class GetCharacteristicCommand: BaseCommand, CBPeripheralDelegate {
             targetDeviceId = deviceId
             targetServiceUUID = serviceUUID
             targetCharacteristicUUID = CBUUID(string: characteristicUUIDString)
-
-            peripheral.delegate = self
             peripheral.discoverCharacteristics([targetCharacteristicUUID!], for: service)
         }
     }

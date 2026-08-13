@@ -2,8 +2,9 @@ import Foundation
 import Flutter
 import CoreBluetooth
 
-public class WriteValueWithResponseCommand: BaseCommand, CBPeripheralDelegate {
+public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
+    private var deviceManager: DeviceManager?
     private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
@@ -18,6 +19,12 @@ public class WriteValueWithResponseCommand: BaseCommand, CBPeripheralDelegate {
         super.init(id: .writeValueWithResponse, arguments: arguments, pendingResult: pendingResult)
     }
 
+    deinit {
+        if let deviceManager {
+            deviceManager.removeDelegate(self)
+        }
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
@@ -27,12 +34,17 @@ public class WriteValueWithResponseCommand: BaseCommand, CBPeripheralDelegate {
                 let serviceUUIDString = arguments["serviceUUID"] as? String,
                 let characteristicUUIDString = arguments["characteristic"] as? String,
                 let value = arguments["value"] as? Data,
-                let peripheral = manager.peripheral(for: deviceId)
+                let deviceManager = manager.deviceManager(for: deviceId)
             else {
                 pendingResult(writeValueWithResponseNetworkError)
                 continuation.resume()
                 return
             }
+
+            self.deviceManager = deviceManager
+            deviceManager.addDelegate(self)
+
+            let peripheral = deviceManager.peripheral
 
             let serviceUUID = CBUUID(string: serviceUUIDString)
             guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
@@ -51,8 +63,6 @@ public class WriteValueWithResponseCommand: BaseCommand, CBPeripheralDelegate {
             targetDeviceId = deviceId
             targetServiceUUID = serviceUUID
             targetCharacteristicUUID = characteristicUUID
-
-            peripheral.delegate = self
             peripheral.writeValue(value, for: characteristic, type: .withResponse)
         }
     }
