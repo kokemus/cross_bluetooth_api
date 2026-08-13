@@ -35,88 +35,76 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let method = CommandId(rawValue: call.method)
         let arguments = call.arguments as? [String: AnyObject]
-        switch method {
+        let command: Command? = switch method {
         case .requestDevice:
-            Task { @MainActor in
-                await RequestDeviceCommand(
-                    viewController: viewController,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            RequestDeviceCommand(
+                viewController: viewController,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .connect:
-            Task {
-                await ConnectCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            ConnectCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .disconnect:
-            Task {
-                await DisconnectCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            DisconnectCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .getPrimaryService:
-            Task {
-                await GetPrimaryServiceCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            GetPrimaryServiceCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .getCharacteristic:
-            Task {
-                await GetCharacteristicCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            GetCharacteristicCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .readValue:
-            Task {
-                await ReadValueCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            ReadValueCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .writeValueWithoutResponse:
-            Task {
-                await WriteValueWithoutResponseCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            WriteValueWithoutResponseCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .writeValueWithResponse:
-            Task {
-                await WriteValueWithResponseCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            WriteValueWithResponseCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .startNotifications:
-            Task {
-                await StartNotificationsCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            StartNotificationsCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         case .stopNotifications:
-            Task {
-                await StopNotificationsCommand(
-                    manager: manager,
-                    arguments: arguments,
-                    pendingResult: result
-                ).execute()
-            }
+            StopNotificationsCommand(
+                manager: manager,
+                arguments: arguments,
+                pendingResult: result
+            )
         default:
+            nil
+        }
+
+        if let command {
+            Task {
+                await command.execute()
+            }
+        } else {
             result(FlutterMethodNotImplemented)
         }
     }
