@@ -160,7 +160,11 @@ extension SwiftCrossBluetoothApiPlugin: BluetoothManagerDelegete {
 
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         manager.removePeripheral(peripheral)
-        eventSink?(["name": "gattserverdisconnected"])
+        eventSink?(
+            GattServerDisconnectedEvent(
+                deviceId: peripheral.identifier.uuidString
+            ).toMap()
+        )
     }
 }
 
@@ -171,13 +175,14 @@ extension SwiftCrossBluetoothApiPlugin: DeviceManagerDelegate {
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         if error == nil {
-            eventSink?([
-                "name": "characteristicvaluechanged",
-                "deviceId": peripheral.identifier.uuidString,
-                "serviceUUID": characteristic.service!.uuid.uuidString,
-                "characteristicUUID": characteristic.uuid.uuidString,
-                "value": characteristic.value ?? Data()
-            ])
+            eventSink?(
+                CharacteristicValueChangedEvent(
+                    deviceId: peripheral.identifier.uuidString,
+                    serviceUUID: characteristic.service!.uuid.uuidString,
+                    characteristicUUID: characteristic.uuid.uuidString,
+                    value: characteristic.value ?? Data()
+                ).toMap()
+            )
         }
     }
 
