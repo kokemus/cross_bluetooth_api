@@ -15,6 +15,8 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.github.kokemus.cross_bluetooth_api.commands.*
+import io.github.kokemus.cross_bluetooth_api.events.CharacteristicValueChangedEvent
+import io.github.kokemus.cross_bluetooth_api.events.GattServerDisconnectedEvent
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManager
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManagerListener
 import io.github.kokemus.cross_bluetooth_api.services.DeviceManager
@@ -120,12 +122,7 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
   override fun onDisconnected(deviceId: String) {
     handler.post {
-      eventSink?.success(
-        mapOf(
-          "name" to "gattserverdisconnected",
-          "deviceId" to deviceId
-        )
-      )
+      eventSink?.success(GattServerDisconnectedEvent(deviceId).toMap())
     }
   }
 
@@ -138,13 +135,12 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
   ) {
     handler.post {
       eventSink?.success(
-        mapOf(
-          "name" to "characteristicvaluechanged",
-          "deviceId" to deviceManager.deviceId,
-          "serviceUUID" to characteristic.service.uuid.toString(),
-          "characteristicUUID" to characteristic.uuid.toString(),
-          "value" to value
-        )
+        CharacteristicValueChangedEvent(
+          deviceId = deviceManager.deviceId,
+          serviceUUID = characteristic.service.uuid.toString(),
+          characteristicUUID = characteristic.uuid.toString(),
+          value = value
+        ).toMap()
       )
     }
   }
