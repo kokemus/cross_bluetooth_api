@@ -35,7 +35,7 @@ public class GetCharacteristicCommand: BaseCommand, DeviceManagerDelegate {
                 let characteristicUUIDString = arguments["characteristic"] as? String,
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(getCharacteristicNetworkError)
+                pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
@@ -47,7 +47,7 @@ public class GetCharacteristicCommand: BaseCommand, DeviceManagerDelegate {
 
             let serviceUUID = CBUUID(string: serviceUUIDString)
             guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
-                pendingResult(getCharacteristicNotFoundError)
+                pendingResult(FlutterError.notFoundError())
                 continuation.resume()
                 return
             }
@@ -65,7 +65,7 @@ public class GetCharacteristicCommand: BaseCommand, DeviceManagerDelegate {
         }
 
         if error != nil {
-            pendingResult(getCharacteristicNotFoundError)
+            pendingResult(FlutterError.notFoundError())
             return
         }
 
@@ -75,22 +75,10 @@ public class GetCharacteristicCommand: BaseCommand, DeviceManagerDelegate {
             let characteristicUUID = targetCharacteristicUUID,
             let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID })
         else {
-            pendingResult(getCharacteristicNotFoundError)
+            pendingResult(FlutterError.notFoundError())
             return
         }
 
         pendingResult(characteristic.toMap())
     }
 }
-
-private let getCharacteristicNetworkError = FlutterError(
-    code: "NetworkError",
-    message: "NetworkError: A network error occurred.",
-    details: nil
-)
-
-private let getCharacteristicNotFoundError = FlutterError(
-    code: "NotFoundError",
-    message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
-    details: nil
-)

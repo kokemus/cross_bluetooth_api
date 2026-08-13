@@ -33,21 +33,9 @@ public class RequestDeviceCommand: BaseCommand, RequestDeviceDelegate {
         viewController.dismiss(animated: true, completion: nil)
         switch (error) {
         case .userCancelled:
-            pendingResult(userCancelledError)
+            pendingResult(FlutterError.userCancelledError())
         default:
-            pendingResult(notFoundError)
+            pendingResult(FlutterError.notFoundError())
         }
     }
 }
-
-private let userCancelledError = FlutterError(
-    code: "NotFoundError",
-    message: "NotFoundError: User cancelled the requestDevice() chooser.",
-    details: nil
-)
-
-private let notFoundError = FlutterError(
-    code: "NotFoundError",
-    message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
-    details: nil
-)

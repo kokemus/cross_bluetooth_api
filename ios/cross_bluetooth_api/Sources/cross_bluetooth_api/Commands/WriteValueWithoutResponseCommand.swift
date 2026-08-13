@@ -22,7 +22,7 @@ public class WriteValueWithoutResponseCommand: BaseCommand {
             let value = arguments["value"] as? Data,
             let deviceManager = manager.deviceManager(for: deviceId)
         else {
-            pendingResult(writeValueWithoutResponseNetworkError)
+            pendingResult(FlutterError.networkError())
             return
         }
 
@@ -30,13 +30,13 @@ public class WriteValueWithoutResponseCommand: BaseCommand {
 
         let serviceUUID = CBUUID(string: serviceUUIDString)
         guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
-            pendingResult(writeValueWithoutResponseNotFoundError)
+            pendingResult(FlutterError.notFoundError())
             return
         }
 
         let characteristicUUID = CBUUID(string: characteristicUUIDString)
         guard let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID }) else {
-            pendingResult(writeValueWithoutResponseNotFoundError)
+            pendingResult(FlutterError.notFoundError())
             return
         }
 
@@ -44,15 +44,3 @@ public class WriteValueWithoutResponseCommand: BaseCommand {
         pendingResult(value)
     }
 }
-
-private let writeValueWithoutResponseNetworkError = FlutterError(
-    code: "NetworkError",
-    message: "NetworkError: A network error occurred.",
-    details: nil
-)
-
-private let writeValueWithoutResponseNotFoundError = FlutterError(
-    code: "NotFoundError",
-    message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
-    details: nil
-)

@@ -27,7 +27,7 @@ public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
             self.continuation = continuation
             guard let deviceId = arguments["id"] as? String,
                   let deviceManager = manager.deviceManager(for: deviceId) else {
-                pendingResult(disconnectNetworkError)
+                pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
@@ -45,16 +45,10 @@ public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
         }
 
         if error != nil {
-            pendingResult(disconnectNetworkError)
+            pendingResult(FlutterError.networkError())
         } else {
             pendingResult(Device.fromPeripheral(peripheral).toMap())
         }
         continuation?.resume()
     }
 }
-
-private let disconnectNetworkError = FlutterError(
-    code: "NetworkError",
-    message: "NetworkError: A network error occurred.",
-    details: nil
-)

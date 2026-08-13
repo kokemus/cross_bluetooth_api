@@ -36,7 +36,7 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
                 let value = arguments["value"] as? Data,
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(writeValueWithResponseNetworkError)
+                pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
@@ -48,14 +48,14 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
 
             let serviceUUID = CBUUID(string: serviceUUIDString)
             guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
-                pendingResult(writeValueWithResponseNotFoundError)
+                pendingResult(FlutterError.notFoundError())
                 continuation.resume()
                 return
             }
 
             let characteristicUUID = CBUUID(string: characteristicUUIDString)
             guard let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID }) else {
-                pendingResult(writeValueWithResponseNotFoundError)
+                pendingResult(FlutterError.notFoundError())
                 continuation.resume()
                 return
             }
@@ -73,7 +73,7 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
         }
 
         if error != nil {
-            pendingResult(writeValueWithResponseNetworkError)
+            pendingResult(FlutterError.networkError())
             return
         }
 
@@ -82,22 +82,10 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
             characteristic.service?.uuid == targetServiceUUID,
             characteristic.uuid == targetCharacteristicUUID
         else {
-            pendingResult(writeValueWithResponseNotFoundError)
+            pendingResult(FlutterError.notFoundError())
             return
         }
 
         pendingResult(characteristic.value)
     }
 }
-
-private let writeValueWithResponseNetworkError = FlutterError(
-    code: "NetworkError",
-    message: "NetworkError: A network error occurred.",
-    details: nil
-)
-
-private let writeValueWithResponseNotFoundError = FlutterError(
-    code: "NotFoundError",
-    message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
-    details: nil
-)

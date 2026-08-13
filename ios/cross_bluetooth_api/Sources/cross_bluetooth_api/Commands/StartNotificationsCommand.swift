@@ -35,7 +35,7 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
                 let characteristicUUIDString = arguments["characteristic"] as? String,
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(startNotificationsNetworkError)
+                pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
@@ -46,20 +46,20 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
             let peripheral = deviceManager.peripheral
             let serviceUUID = CBUUID(string: serviceUUIDString)
             guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
-                pendingResult(startNotificationsNotFoundError)
+                pendingResult(FlutterError.notFoundError())
                 continuation.resume()
                 return
             }
 
             let characteristicUUID = CBUUID(string: characteristicUUIDString)
             guard let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID }) else {
-                pendingResult(startNotificationsNotFoundError)
+                pendingResult(FlutterError.notFoundError())
                 continuation.resume()
                 return
             }
 
             guard characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) else {
-                pendingResult(startNotificationsNotSupportedError)
+                pendingResult(FlutterError.notSupportedError())
                 continuation.resume()
                 return
             }
@@ -85,33 +85,15 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
         }
 
         if error != nil {
-            pendingResult(startNotificationsNetworkError)
+            pendingResult(FlutterError.networkError())
             return
         }
 
         if !characteristic.isNotifying {
-            pendingResult(startNotificationsNetworkError)
+            pendingResult(FlutterError.networkError())
             return
         }
 
         pendingResult(true)
     }
 }
-
-private let startNotificationsNetworkError = FlutterError(
-    code: "NetworkError",
-    message: "NetworkError: A network error occurred.",
-    details: nil
-)
-
-private let startNotificationsNotFoundError = FlutterError(
-    code: "NotFoundError",
-    message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
-    details: nil
-)
-
-private let startNotificationsNotSupportedError = FlutterError(
-    code: "NotSupportedError",
-    message: "NotSupportedError: Characteristic does not support notifications.",
-    details: nil
-)

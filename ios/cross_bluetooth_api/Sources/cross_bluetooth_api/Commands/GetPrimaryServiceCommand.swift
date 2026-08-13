@@ -31,7 +31,7 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
             guard let deviceId = arguments["deviceId"] as? String,
                   let serviceUUIDString = arguments["serviceUUID"] as? String,
                   let deviceManager = manager.deviceManager(for: deviceId) else {
-                pendingResult(getPrimaryServiceNetworkError)
+                pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
@@ -50,7 +50,7 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
         }
 
         if error != nil {
-            pendingResult(getPrimaryServiceNotFoundError)
+            pendingResult(FlutterError.notFoundError())
             return
         }
 
@@ -59,22 +59,10 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
             let serviceUUID = targetServiceUUID,
             let service = peripheral.services?.first(where: { $0.uuid == serviceUUID })
         else {
-            pendingResult(getPrimaryServiceNotFoundError)
+            pendingResult(FlutterError.notFoundError())
             return
         }
 
         pendingResult(service.toMap())
     }
 }
-
-private let getPrimaryServiceNetworkError = FlutterError(
-    code: "NetworkError",
-    message: "NetworkError: A network error occurred.",
-    details: nil
-)
-
-private let getPrimaryServiceNotFoundError = FlutterError(
-    code: "NotFoundError",
-    message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
-    details: nil
-)

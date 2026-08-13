@@ -26,7 +26,7 @@ public class ConnectCommand: BaseCommand, BluetoothManagerDelegete {
             self.continuation = continuation
             guard let deviceId = arguments["id"] as? String,
                   let deviceManager = manager.retrieveDeviceManager(deviceId: deviceId) else {
-                pendingResult(connectNetworkError)
+                pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
@@ -42,15 +42,9 @@ public class ConnectCommand: BaseCommand, BluetoothManagerDelegete {
 
     public func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         manager.removePeripheral(peripheral)
-        pendingResult(connectNetworkError)
+        pendingResult(FlutterError.networkError())
         continuation?.resume()
     }
     
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {}
 }
-
-private let connectNetworkError = FlutterError(
-    code: "NetworkError",
-    message: "NetworkError: A network error occurred.",
-    details: nil
-)
