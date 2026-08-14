@@ -1,7 +1,6 @@
 package io.github.kokemus.cross_bluetooth_api.commands
 
 import android.Manifest
-import android.app.Activity
 import android.bluetooth.BluetoothGatt.GATT_SUCCESS
 import androidx.annotation.RequiresPermission
 import io.github.kokemus.cross_bluetooth_api.extensions.networkError
@@ -17,7 +16,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 class ConnectCommand(
     private val manager: BluetoothManager,
-    private val activity: Activity?,
     arguments: Map<String, Any>,
     pendingResult: MethodChannel.Result
 ) : BaseCommand(CommandId.CONNECT, arguments, pendingResult), BluetoothManagerListener,
@@ -32,18 +30,11 @@ class ConnectCommand(
         suspendCancellableCoroutine { continuation ->
             this.continuation = continuation
 
-            val hostActivity = activity
-            if (hostActivity == null) {
-                pendingResult.networkError()
-                cleanupAndResume()
-                return@suspendCancellableCoroutine
-            }
-
             val device = Device.fromMap(arguments)
             targetDeviceId = device.id
             manager.addListener(this)
 
-            if (!manager.connect(hostActivity, device.id)) {
+            if (!manager.connect(device.id)) {
                 pendingResult.networkError()
                 cleanupAndResume()
             }

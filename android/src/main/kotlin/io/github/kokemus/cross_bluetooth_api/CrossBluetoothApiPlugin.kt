@@ -1,7 +1,6 @@
 package io.github.kokemus.cross_bluetooth_api
 
 import android.Manifest
-import android.app.Activity
 import android.bluetooth.BluetoothGattCharacteristic
 import android.os.Handler
 import android.os.Looper
@@ -32,7 +31,6 @@ import kotlinx.coroutines.launch
 class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware, BluetoothManagerListener,
   DeviceManagerListener {
   private lateinit var channel : MethodChannel
-  private var activity: Activity? = null
   private lateinit var bluetoothManager: BluetoothManager
   private val requestDeviceLauncher = RequestDeviceLauncher()
   private val commandScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -69,23 +67,19 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
   }
 
   override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
-    activity = activityPluginBinding.activity
     requestDeviceLauncher.attach(activityPluginBinding)
   }
 
   override fun onDetachedFromActivity() {
     requestDeviceLauncher.detach()
-    activity = null
   }
 
   override fun onReattachedToActivityForConfigChanges(activityPluginBinding: ActivityPluginBinding) {
-    activity = activityPluginBinding.activity
     requestDeviceLauncher.attach(activityPluginBinding)
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
     requestDeviceLauncher.detach()
-    activity = null
   }
 
   @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
@@ -95,7 +89,7 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     val command = when (CommandId.fromMethod(call.method)) {
       CommandId.REQUEST_DEVICE -> RequestDeviceCommand(requestDeviceLauncher, arguments, result)
-      CommandId.CONNECT -> ConnectCommand(bluetoothManager, activity, arguments, result)
+      CommandId.CONNECT -> ConnectCommand(bluetoothManager, arguments, result)
       CommandId.DISCONNECT -> DisconnectCommand(bluetoothManager, arguments, result)
       CommandId.GET_PRIMARY_SERVICE -> GetPrimaryServiceCommand(bluetoothManager, arguments, result)
       CommandId.GET_CHARACTERISTIC -> GetCharacteristicCommand(bluetoothManager, arguments, result)

@@ -26,13 +26,13 @@ interface BluetoothManager {
     fun retrieveDeviceManager(deviceId: String): DeviceManager?
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun connect(context: Context, deviceId: String): Boolean
+    fun connect(deviceId: String): Boolean
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun disconnect(deviceId: String): Boolean
 }
 
-class BluetoothManagerImp(context: Context) : BluetoothManager {
+class BluetoothManagerImp(private val context: Context) : BluetoothManager {
     private val manager =
         context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
 
@@ -62,7 +62,7 @@ class BluetoothManagerImp(context: Context) : BluetoothManager {
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    override fun connect(context: Context, deviceId: String): Boolean {
+    override fun connect(deviceId: String): Boolean {
         val bluetoothDevice = manager.adapter.getRemoteDevice(deviceId)
         val gatt = bluetoothDevice.connectGatt(context, false, callback)
         return gatt != null
