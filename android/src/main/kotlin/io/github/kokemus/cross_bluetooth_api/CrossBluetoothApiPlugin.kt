@@ -17,6 +17,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.github.kokemus.cross_bluetooth_api.commands.*
 import io.github.kokemus.cross_bluetooth_api.events.CharacteristicValueChangedEvent
 import io.github.kokemus.cross_bluetooth_api.events.GattServerDisconnectedEvent
+import io.github.kokemus.cross_bluetooth_api.services.BluetoothManagerImp
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManager
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManagerListener
 import io.github.kokemus.cross_bluetooth_api.services.DeviceManager
@@ -40,7 +41,7 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "cross_bluetooth_api")
     channel.setMethodCallHandler(this)
 
-    bluetoothManager = BluetoothManager(flutterPluginBinding.applicationContext)
+    bluetoothManager = BluetoothManagerImp(flutterPluginBinding.applicationContext)
     bluetoothManager.addListener(this)
 
     val eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "cross_bluetooth_api/events")

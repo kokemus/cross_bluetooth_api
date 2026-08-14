@@ -16,44 +16,60 @@ interface BluetoothManagerListener {
     fun onDisconnected(deviceId: String) {}
 }
 
-class BluetoothManager(context: Context) {
+interface BluetoothManager {
+    fun addListener(delegate: BluetoothManagerListener)
+    fun removeListener(delegate: BluetoothManagerListener)
+    fun removeAllListeners()
+    fun deviceManager(deviceId: String): DeviceManager?
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun retrieveDeviceManager(deviceId: String): DeviceManager?
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun connect(context: Context, deviceId: String): Boolean
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun disconnect(deviceId: String): Boolean
+}
+
+class BluetoothManagerImp(context: Context) : BluetoothManager {
     private val manager =
         context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
 
     private val deviceManagersById = mutableMapOf<String, DeviceManager>()
     private val listeners = mutableSetOf<BluetoothManagerListener>()
 
-    fun addListener(delegate: BluetoothManagerListener) {
+    override fun addListener(delegate: BluetoothManagerListener) {
         listeners.add(delegate)
     }
 
-    fun removeListener(delegate: BluetoothManagerListener) {
+    override fun removeListener(delegate: BluetoothManagerListener) {
         listeners.remove(delegate)
     }
 
-    fun removeAllListeners() {
+    override fun removeAllListeners() {
         listeners.clear()
     }
 
-    fun deviceManager(deviceId: String): DeviceManager? {
+    override fun deviceManager(deviceId: String): DeviceManager? {
         return deviceManagersById[deviceId]
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun retrieveDeviceManager(deviceId: String): DeviceManager? {
+    override fun retrieveDeviceManager(deviceId: String): DeviceManager? {
         return deviceManagersById[deviceId]
             ?: deviceManagersById[manager.adapter.getRemoteDevice(deviceId).address]
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun connect(context: Context, deviceId: String): Boolean {
+    override fun connect(context: Context, deviceId: String): Boolean {
         val bluetoothDevice = manager.adapter.getRemoteDevice(deviceId)
         val gatt = bluetoothDevice.connectGatt(context, false, callback)
         return gatt != null
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun disconnect(deviceId: String): Boolean {
+    override fun disconnect(deviceId: String): Boolean {
         val manager = deviceManager(deviceId) ?: return false
         manager.gatt.disconnect()
         return true

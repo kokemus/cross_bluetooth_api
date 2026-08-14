@@ -28,7 +28,7 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
 
     override init() {
         super.init()
-        manager = BluetoothManager(queue: .main)
+        manager = BluetoothManagerImp(queue: .main)
         manager.addDelegate(self)
     }
 

@@ -2,7 +2,19 @@ import CoreBluetooth
 
 protocol BluetoothManagerDelegete: AnyObject, CBCentralManagerDelegate {}
 
-final class BluetoothManager: NSObject {
+protocol BluetoothManager {
+    func connect(_ deviceId: String) -> Bool
+    func disconnect(_ deviceId: String) -> Bool
+    func addDelegate(_ delegate: BluetoothManagerDelegete)
+    func removeDelegate(_ delegate: BluetoothManagerDelegete)
+    func deviceManager(for deviceId: String) -> DeviceManager?
+
+    @discardableResult
+    func addPeripheral(_ peripheral: CBPeripheral) -> DeviceManager
+    func removePeripheral(_ peripheral: CBPeripheral)
+}
+
+final class BluetoothManagerImp: NSObject, BluetoothManager {
 
     private let central: CBCentralManager
     private var deviceManagersById: [String: DeviceManager] = [:]
@@ -100,7 +112,7 @@ final class BluetoothManager: NSObject {
     }
 }
 
-extension BluetoothManager: CBCentralManagerDelegate {
+extension BluetoothManagerImp: CBCentralManagerDelegate {
 
     func centralManagerDidUpdateState(
         _ central: CBCentralManager
