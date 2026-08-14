@@ -25,15 +25,17 @@ public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
-            guard let deviceId = arguments["id"] as? String,
-                  let deviceManager = manager.deviceManager(for: deviceId) else {
+            guard let deviceId = arguments["id"] as? String else {
                 pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
 
             targetDeviceId = deviceId
-            manager.central.cancelPeripheralConnection(deviceManager.peripheral)
+            if !manager.disconnect(deviceId) {
+                pendingResult(FlutterError.networkError())
+                continuation.resume()
+            }
         }
     }
 

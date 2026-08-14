@@ -53,10 +53,6 @@ class DeviceManager(internal val gatt: BluetoothGatt) {
         listeners.remove(delegate)
     }
 
-    fun removeAllListeners() {
-        listeners.clear()
-    }
-
     fun getService(serviceUUID: String): BluetoothGattService? {
         return gatt.getService(UUID.fromString(serviceUUID))
     }

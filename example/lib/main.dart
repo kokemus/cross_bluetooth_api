@@ -187,12 +187,12 @@ class _MyAppState extends State<MyApp> {
     await _batterySubscription?.cancel();
     _batterySubscription = null;
 
-    final batteryLevelCharacteristic = await _device!.gatt
+    final batteryLevelCharacteristic = await _device?.gatt
         .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
         .then(
           (service) =>
               service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'),
         );
-    await batteryLevelCharacteristic.stopNotifications();
+    await batteryLevelCharacteristic?.stopNotifications();
   }
 }

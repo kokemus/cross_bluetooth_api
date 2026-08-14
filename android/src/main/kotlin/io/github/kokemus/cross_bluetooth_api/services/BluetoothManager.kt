@@ -1,7 +1,6 @@
 package io.github.kokemus.cross_bluetooth_api.services
 
 import android.Manifest
-import android.app.Activity
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGatt.GATT_SUCCESS
 import android.bluetooth.BluetoothGattCallback
@@ -18,7 +17,7 @@ interface BluetoothManagerListener {
 }
 
 class BluetoothManager(context: Context) {
-    private val androidBluetoothManager =
+    private val manager =
         context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
 
     private val deviceManagersById = mutableMapOf<String, DeviceManager>()
@@ -43,13 +42,13 @@ class BluetoothManager(context: Context) {
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun retrieveDeviceManager(deviceId: String): DeviceManager? {
         return deviceManagersById[deviceId]
-            ?: deviceManagersById[androidBluetoothManager.adapter.getRemoteDevice(deviceId).address]
+            ?: deviceManagersById[manager.adapter.getRemoteDevice(deviceId).address]
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun connect(activity: Activity, deviceId: String): Boolean {
-        val bluetoothDevice = androidBluetoothManager.adapter.getRemoteDevice(deviceId)
-        val gatt = bluetoothDevice.connectGatt(activity, false, callback)
+    fun connect(context: Context, deviceId: String): Boolean {
+        val bluetoothDevice = manager.adapter.getRemoteDevice(deviceId)
+        val gatt = bluetoothDevice.connectGatt(context, false, callback)
         return gatt != null
     }
 

@@ -108,21 +108,6 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
             result(FlutterMethodNotImplemented)
         }
     }
-
-    private func getPeripheral(_ deviceId: String) -> CBPeripheral? {
-        return manager.peripheral(for: deviceId)
-    }
-
-    private func getService(_ deviceId: String, _ serviceUUID: String) -> CBService? {
-        let peripheral = getPeripheral(deviceId)
-        return peripheral?.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
-    }
-
-    private func getCharacteristic(_ deviceId: String, _ serviceUUID: String, _ characteristicUUID: String) -> CBCharacteristic? {
-        let peripheral = getPeripheral(deviceId)
-        let service = peripheral?.services?.first { $0.uuid == CBUUID(string: serviceUUID) }
-        return service?.characteristics?.first { $0.uuid == CBUUID(string: characteristicUUID) }
-    }
 }
 
 extension SwiftCrossBluetoothApiPlugin: FlutterStreamHandler {

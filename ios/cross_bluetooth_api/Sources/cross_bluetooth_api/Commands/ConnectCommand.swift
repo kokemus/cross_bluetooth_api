@@ -24,14 +24,16 @@ public class ConnectCommand: BaseCommand, BluetoothManagerDelegete {
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
-            guard let deviceId = arguments["id"] as? String,
-                  let deviceManager = manager.retrieveDeviceManager(deviceId: deviceId) else {
+            guard let deviceId = arguments["id"] as? String else {
                 pendingResult(FlutterError.networkError())
                 continuation.resume()
                 return
             }
 
-            manager.central.connect(deviceManager.peripheral, options: nil)
+            if !manager.connect(deviceId) {
+                pendingResult(FlutterError.networkError())
+                continuation.resume()
+            }
         }
     }
     
