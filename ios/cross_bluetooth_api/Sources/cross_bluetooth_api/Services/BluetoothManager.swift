@@ -40,7 +40,7 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
         guard let deviceManager = retrieveDeviceManager(deviceId: deviceId) else {
             return false
         }
-        central.connect(deviceManager.peripheral)
+        deviceManager.connect()
         return true
     }
 
@@ -48,7 +48,7 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
         guard let deviceManager = retrieveDeviceManager(deviceId: deviceId) else {
             return false
         }
-        central.cancelPeripheralConnection(deviceManager.peripheral)
+        deviceManager.disconnect()
         return true
     }
 
@@ -71,7 +71,7 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
             return existing
         }
 
-        let manager = DeviceManager(peripheral: peripheral)
+        let manager = DeviceManagerImp(central: central, peripheral: peripheral)
         deviceManagersById[id] = manager
         return manager
     }

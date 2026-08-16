@@ -40,7 +40,7 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
             deviceManager.addDelegate(self)
             targetDeviceId = deviceId
             targetServiceUUID = CBUUID(string: serviceUUIDString)
-            deviceManager.peripheral.discoverServices([targetServiceUUID!])
+            deviceManager.discoverServices([targetServiceUUID!])
         }
     }
 
@@ -57,7 +57,7 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
         guard
             peripheral.identifier.uuidString == targetDeviceId,
             let serviceUUID = targetServiceUUID,
-            let service = peripheral.services?.first(where: { $0.uuid == serviceUUID })
+            let service = deviceManager?.getService(serviceUUID)
         else {
             pendingResult(FlutterError.notFoundError())
             return

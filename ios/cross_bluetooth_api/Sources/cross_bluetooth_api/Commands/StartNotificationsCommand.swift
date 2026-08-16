@@ -43,16 +43,12 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
             self.deviceManager = deviceManager
             deviceManager.addDelegate(self)
 
-            let peripheral = deviceManager.peripheral
             let serviceUUID = CBUUID(string: serviceUUIDString)
-            guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
-                pendingResult(FlutterError.notFoundError())
-                continuation.resume()
-                return
-            }
-
             let characteristicUUID = CBUUID(string: characteristicUUIDString)
-            guard let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID }) else {
+            guard let characteristic = deviceManager.getCharacteristic(
+                serviceUUID: serviceUUID,
+                characteristicUUID: characteristicUUID
+            ) else {
                 pendingResult(FlutterError.notFoundError())
                 continuation.resume()
                 return
@@ -67,7 +63,7 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
             targetDeviceId = deviceId
             targetServiceUUID = serviceUUID
             targetCharacteristicUUID = characteristicUUID
-            peripheral.setNotifyValue(true, for: characteristic)
+            deviceManager.setNotifyValue(true, for: characteristic)
         }
     }
 

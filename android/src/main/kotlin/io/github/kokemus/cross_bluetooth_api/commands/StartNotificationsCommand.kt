@@ -83,9 +83,9 @@ class StartNotificationsCommand(
             targetDeviceManager = deviceManager
             deviceManager.addListener(this)
 
-            if (deviceManager.gatt.setCharacteristicNotification(characteristic, true)) {
+            if (deviceManager.setCharacteristicNotification(characteristic, true)) {
                 cccd.value = enableValue
-                if (!deviceManager.gatt.writeDescriptor(cccd)) {
+                if (!deviceManager.writeDescriptor(cccd)) {
                     pendingResult.networkError()
                     cleanupAndResume()
                 }

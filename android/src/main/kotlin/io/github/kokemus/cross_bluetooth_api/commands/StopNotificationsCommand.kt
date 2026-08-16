@@ -68,9 +68,9 @@ class StopNotificationsCommand(
             targetDeviceManager = deviceManager
             deviceManager.addListener(this)
 
-            if (deviceManager.gatt.setCharacteristicNotification(characteristic, false)) {
+            if (deviceManager.setCharacteristicNotification(characteristic, false)) {
                 cccd.value = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-                if (!deviceManager.gatt.writeDescriptor(cccd)) {
+                if (!deviceManager.writeDescriptor(cccd)) {
                     pendingResult.networkError()
                     cleanupAndResume()
                 }

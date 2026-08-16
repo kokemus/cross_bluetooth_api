@@ -43,10 +43,8 @@ public class GetCharacteristicCommand: BaseCommand, DeviceManagerDelegate {
             self.deviceManager = deviceManager
             deviceManager.addDelegate(self)
 
-            let peripheral = deviceManager.peripheral
-
             let serviceUUID = CBUUID(string: serviceUUIDString)
-            guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
+            guard let service = deviceManager.getService(serviceUUID) else {
                 pendingResult(FlutterError.notFoundError())
                 continuation.resume()
                 return
@@ -55,7 +53,7 @@ public class GetCharacteristicCommand: BaseCommand, DeviceManagerDelegate {
             targetDeviceId = deviceId
             targetServiceUUID = serviceUUID
             targetCharacteristicUUID = CBUUID(string: characteristicUUIDString)
-            peripheral.discoverCharacteristics([targetCharacteristicUUID!], for: service)
+            deviceManager.discoverCharacteristics([targetCharacteristicUUID!], for: service)
         }
     }
 

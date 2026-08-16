@@ -58,7 +58,7 @@ class WriteValueWithoutResponseCommand(
 
             characteristic.value = value
             characteristic.writeType = WRITE_TYPE_NO_RESPONSE
-            if (!deviceManager.gatt.writeCharacteristic(characteristic)) {
+            if (!deviceManager.writeCharacteristic(characteristic)) {
                 pendingResult.networkError()
                 cleanupAndResume()
             }

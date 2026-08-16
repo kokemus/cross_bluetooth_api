@@ -1,9 +1,11 @@
 package io.github.kokemus.cross_bluetooth_api.services
 
+import android.Manifest
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
+import androidx.annotation.RequiresPermission
 import java.util.UUID
 
 interface DeviceManagerListener {
@@ -39,26 +41,71 @@ interface DeviceManagerListener {
     }
 }
 
-class DeviceManager(internal val gatt: BluetoothGatt) {
+interface DeviceManager {
+    val deviceId: String
+    fun addListener(delegate: DeviceManagerListener)
+    fun removeListener(delegate: DeviceManagerListener)
+    fun getService(serviceUUID: String): BluetoothGattService?
+    fun getCharacteristic(serviceUUID: String, characteristicUUID: String): BluetoothGattCharacteristic?
+    fun disconnect()
+    fun readCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean
+    fun setCharacteristicNotification(
+        characteristic: BluetoothGattCharacteristic,
+        bool: Boolean
+    ): Boolean
+
+    fun writeDescriptor(descriptor: BluetoothGattDescriptor): Boolean
+    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean
+}
+
+class DeviceManagerImp(private val gatt: BluetoothGatt) : DeviceManager {
     private val listeners = mutableSetOf<DeviceManagerListener>()
 
-    val deviceId: String
+    override val deviceId: String
         get() = gatt.device.address
 
-    fun addListener(delegate: DeviceManagerListener) {
+    override fun addListener(delegate: DeviceManagerListener) {
         listeners.add(delegate)
     }
 
-    fun removeListener(delegate: DeviceManagerListener) {
+    override fun removeListener(delegate: DeviceManagerListener) {
         listeners.remove(delegate)
     }
 
-    fun getService(serviceUUID: String): BluetoothGattService? {
+    override fun getService(serviceUUID: String): BluetoothGattService? {
         return gatt.getService(UUID.fromString(serviceUUID))
     }
 
-    fun getCharacteristic(serviceUUID: String, characteristicUUID: String): BluetoothGattCharacteristic? {
+    override fun getCharacteristic(serviceUUID: String, characteristicUUID: String): BluetoothGattCharacteristic? {
         return getService(serviceUUID)?.getCharacteristic(UUID.fromString(characteristicUUID))
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun disconnect() {
+        gatt.disconnect()
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun readCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean {
+        return gatt.readCharacteristic(characteristic)
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun setCharacteristicNotification(
+        characteristic: BluetoothGattCharacteristic,
+        bool: Boolean
+    ): Boolean {
+        return gatt.setCharacteristicNotification(characteristic, bool)
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun writeDescriptor(descriptor: BluetoothGattDescriptor): Boolean {
+        return gatt.writeDescriptor(descriptor)
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun writeCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean {
+        return gatt.writeCharacteristic(characteristic)
     }
 
     internal fun notifyServicesDiscovered(status: Int) {

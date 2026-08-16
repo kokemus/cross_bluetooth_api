@@ -36,7 +36,7 @@ class BluetoothManagerImp(private val context: Context) : BluetoothManager {
     private val manager =
         context.getSystemService(Context.BLUETOOTH_SERVICE) as android.bluetooth.BluetoothManager
 
-    private val deviceManagersById = mutableMapOf<String, DeviceManager>()
+    private val deviceManagersById = mutableMapOf<String, DeviceManagerImp>()
     private val listeners = mutableSetOf<BluetoothManagerListener>()
 
     override fun addListener(delegate: BluetoothManagerListener) {
@@ -71,7 +71,7 @@ class BluetoothManagerImp(private val context: Context) : BluetoothManager {
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun disconnect(deviceId: String): Boolean {
         val manager = deviceManager(deviceId) ?: return false
-        manager.gatt.disconnect()
+        manager.disconnect()
         return true
     }
 
@@ -82,7 +82,7 @@ class BluetoothManagerImp(private val context: Context) : BluetoothManager {
             return existing
         }
 
-        val manager = DeviceManager(gatt)
+        val manager = DeviceManagerImp(gatt)
         deviceManagersById[id] = manager
         return manager
     }

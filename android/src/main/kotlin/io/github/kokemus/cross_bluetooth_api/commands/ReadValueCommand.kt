@@ -53,7 +53,7 @@ class ReadValueCommand(
             targetCharacteristicUUID = characteristicUUID
             targetDeviceManager = deviceManager
             deviceManager.addListener(this)
-            if (!deviceManager.gatt.readCharacteristic(characteristic)) {
+            if (!deviceManager.readCharacteristic(characteristic)) {
                 pendingResult.networkError()
                 cleanupAndResume()
             }

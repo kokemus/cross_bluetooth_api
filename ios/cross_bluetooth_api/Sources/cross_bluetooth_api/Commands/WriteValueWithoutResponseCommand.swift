@@ -26,21 +26,17 @@ public class WriteValueWithoutResponseCommand: BaseCommand {
             return
         }
 
-        let peripheral = deviceManager.peripheral
-
         let serviceUUID = CBUUID(string: serviceUUIDString)
-        guard let service = peripheral.services?.first(where: { $0.uuid == serviceUUID }) else {
-            pendingResult(FlutterError.notFoundError())
-            return
-        }
-
         let characteristicUUID = CBUUID(string: characteristicUUIDString)
-        guard let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID }) else {
+        guard let characteristic = deviceManager.getCharacteristic(
+            serviceUUID: serviceUUID,
+            characteristicUUID: characteristicUUID
+        ) else {
             pendingResult(FlutterError.notFoundError())
             return
         }
 
-        peripheral.writeValue(value, for: characteristic, type: .withoutResponse)
+        deviceManager.writeValue(value, for: characteristic, type: .withoutResponse)
         pendingResult(value)
     }
 }
