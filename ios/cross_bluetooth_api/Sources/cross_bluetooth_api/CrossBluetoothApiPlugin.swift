@@ -2,6 +2,15 @@ import Flutter
 import UIKit
 import CoreBluetooth
 
+#if SWIFT_PACKAGE
+@objc(CrossBluetoothApiPlugin)
+public final class CrossBluetoothApiPlugin: NSObject, FlutterPlugin {
+    public static func register(with registrar: FlutterPluginRegistrar) {
+        SwiftCrossBluetoothApiPlugin.register(with: registrar)
+    }
+}
+#endif
+
 public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "cross_bluetooth_api", binaryMessenger: registrar.messenger())
