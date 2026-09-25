@@ -10,12 +10,17 @@ import 'src/models/request_device_options.dart';
 export 'src/models/device.dart';
 export 'src/models/request_device_options.dart';
 export 'src/models/errors.dart';
+export 'src/models/remote_gatt_server.dart';
+export 'src/models/remote_gatt_service.dart';
+export 'src/models/remote_gatt_characteristic.dart';
 
 class Bluetooth {
   static Future<Device> requestDevice(RequestDeviceOptions options) async {
     try {
-      final map =
-          await methodChannel.invokeMethod('requestDevice', options.toJson());
+      final map = await methodChannel.invokeMethod(
+        'requestDevice',
+        options.toJson(),
+      );
       return Device.fromJson(map.cast<String, dynamic>());
     } on PlatformException catch (e) {
       throw UnknownError.fromException(e);
