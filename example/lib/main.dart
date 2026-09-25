@@ -1,39 +1,18 @@
-import 'dart:async';
-import 'dart:convert';
+import 'package:cross_bluetooth_api_example/device_view.dart';
+import 'package:cross_bluetooth_api_example/scan_view.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:cross_bluetooth_api/cross_bluetooth_api.dart';
 
-extension on ByteData {
-  String getString() {
-    return utf8.decode(buffer.asUint8List(offsetInBytes, lengthInBytes));
-  }
-}
-
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+class MyApp extends StatelessWidget {
+  MyApp({Key? key}) : super(key: key);
 
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  String? _state;
-  Device? _device;
-  String _modelNumber = '';
-  bool _loading = false;
-  StreamSubscription<dynamic>? _batterySubscription;
-
-  @override
-  void dispose() {
-    _stopBatteryNotifications();
-    super.dispose();
-  }
+  final ValueNotifier<Device?> _device = ValueNotifier<Device?>(null);
+  final ValueNotifier<List<String>> _services = ValueNotifier<List<String>>([]);
 
   @override
   Widget build(BuildContext context) {
@@ -41,158 +20,19 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         appBar: AppBar(title: const Text('Cross Bluetooth API')),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                height: 56,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(_state ?? '', textAlign: TextAlign.center),
-                ),
-              ),
-              OutlinedButton(
-                onPressed: () async {
-                  try {
-                    _loading = true;
-                    if (!(_device?.gatt.connected ?? false)) {
-                      await _connectAndRead();
-                    } else {
-                      await _disconnect();
-                    }
-                    _loading = false;
-                  } on UnknownError catch (e) {
-                    _loading = false;
-                    setState(() {
-                      _state = e.message;
-                    });
-                  }
-                },
-                child: !_loading
-                    ? Text(
-                        !(_device?.gatt.connected ?? false)
-                            ? 'Scan'
-                            : 'Disconnect',
-                      )
-                    : const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: ValueListenableBuilder(
+              valueListenable: _device,
+              builder: (context, device, child) {
+                return device == null
+                    ? ScanView(selectedDevice: _device, services: _services)
+                    : DeviceView(device: _device, services: _services);
+              },
+            ),
           ),
         ),
       ),
     );
-  }
-
-  Future _connectAndRead() async {
-    setState(() {
-      _state = '';
-    });
-    _device = await Bluetooth.requestDevice(
-      RequestDeviceOptions(
-        acceptAllDevices: true,
-        optionalServices: [
-          '0000180a-0000-1000-8000-00805f9b34fb',
-          '0000180f-0000-1000-8000-00805f9b34fb',
-        ],
-      ),
-    );
-    _device?.gattserverdisconnected.listen((_) {
-      setState(() {
-        _state = '${_device?.name} disconnected';
-      });
-    });
-    setState(() {
-      _state = _device.toString();
-    });
-    final server = await _device!.gatt.connect();
-    setState(() {
-      _state = server.toString();
-    });
-    final modelNumber = await _readModelNumber();
-    _modelNumber = modelNumber;
-    setState(() {
-      _state = modelNumber;
-    });
-    final batteryLevel = await _readBatteryLevel();
-    await _startBatteryNotifications();
-    setState(() {
-      _state = '$modelNumber $batteryLevel%';
-    });
-  }
-
-  Future _disconnect() async {
-    await _stopBatteryNotifications();
-    setState(() {
-      _state = '';
-    });
-    await _device?.gatt.disconnect();
-    setState(() {
-      _state = '';
-    });
-  }
-
-  Future<String> _readModelNumber() async {
-    final modelNumberCharacteristic = await _device!.gatt
-        .getPrimaryService('0000180a-0000-1000-8000-00805f9b34fb')
-        .then(
-          (service) =>
-              service.getCharacteristic('00002a24-0000-1000-8000-00805f9b34fb'),
-        );
-    final value = await modelNumberCharacteristic.readValue();
-    return value.getString();
-  }
-
-  Future<int> _readBatteryLevel() async {
-    final batteryLevelCharacteristic = await _device!.gatt
-        .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
-        .then(
-          (service) =>
-              service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'),
-        );
-    final value = await batteryLevelCharacteristic.readValue();
-    final batteryLevel = value.getUint8(0); // 0..100
-    return batteryLevel;
-  }
-
-  Future<void> _startBatteryNotifications() async {
-    final batteryLevelCharacteristic = await _device!.gatt
-        .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
-        .then(
-          (service) =>
-              service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'),
-        );
-
-    await _batterySubscription?.cancel();
-    _batterySubscription = batteryLevelCharacteristic.characteristicvaluechanged
-        .listen((c) {
-          final currentValue = c.value;
-          if (currentValue == null || currentValue.lengthInBytes == 0) {
-            return;
-          }
-
-          final batteryLevel = currentValue.getUint8(0);
-          setState(() {
-            _state = '$_modelNumber $batteryLevel%';
-          });
-        });
-    await batteryLevelCharacteristic.startNotifications();
-  }
-
-  Future<void> _stopBatteryNotifications() async {
-    await _batterySubscription?.cancel();
-    _batterySubscription = null;
-
-    final batteryLevelCharacteristic = await _device?.gatt
-        .getPrimaryService('0000180f-0000-1000-8000-00805f9b34fb')
-        .then(
-          (service) =>
-              service.getCharacteristic('00002a19-0000-1000-8000-00805f9b34fb'),
-        );
-    await batteryLevelCharacteristic?.stopNotifications();
   }
 }
