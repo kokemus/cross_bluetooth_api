@@ -1,13 +1,14 @@
-import 'package:js/js_util.dart';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'bluetooth_device.dart';
 import 'bluetooth_remote_gatt_service.dart';
 
 class BluetoothRemoteGATTServer {
-  final Object _object;
+  final JSObject _object;
 
   bool get connected {
-    return getProperty(_object, 'connected');
+    return (_object.getProperty('connected'.toJS) as JSBoolean).toDart;
   }
 
   BluetoothDevice? device;
@@ -15,19 +16,20 @@ class BluetoothRemoteGATTServer {
   BluetoothRemoteGATTServer.fromObject(this._object, this.device);
 
   Future<BluetoothRemoteGATTServer> connect() async {
-    final promise = callMethod(_object, 'connect', []);
-    await promiseToFuture(promise);
+    final promise = _object.callMethod('connect'.toJS);
+    await (promise as JSPromise<JSAny?>).toDart;
     return this;
   }
 
   void disconnect() {
-    callMethod(_object, 'disconnect', []);
+    _object.callMethod('disconnect'.toJS);
   }
 
   Future<BluetoothRemoteGATTService> getPrimaryService(
       String serviceUUID) async {
-    final promise = callMethod(_object, 'getPrimaryService', [serviceUUID]);
-    final object = await promiseToFuture(promise);
+    final promise =
+        _object.callMethod('getPrimaryService'.toJS, serviceUUID.toJS);
+    final object = await (promise as JSPromise<JSObject>).toDart;
     return BluetoothRemoteGATTService.fromObject(object, device);
   }
 }

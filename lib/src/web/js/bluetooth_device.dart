@@ -1,19 +1,24 @@
-import 'package:js/js_util.dart';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'bluetooth_remote_gatt_server.dart';
+
+typedef EventListener = void Function(JSAny? event);
 
 class BluetoothDevice {
   String? id;
   String? name;
   BluetoothRemoteGATTServer? gatt;
 
-  final Object _object;
+  final JSObject _object;
 
   BluetoothDevice.fromObject(this._object) {
-    id = getProperty(_object, 'id');
-    name = getProperty(_object, 'name');
+    id = (_object.getProperty('id'.toJS) as JSString?)?.toDart;
+    name = (_object.getProperty('name'.toJS) as JSString?)?.toDart;
     gatt = BluetoothRemoteGATTServer.fromObject(
-        getProperty(_object, 'gatt'), this);
+      _object.getProperty('gatt'.toJS) as JSObject,
+      this,
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -21,5 +26,9 @@ class BluetoothDevice {
     data['id'] = id;
     data['name'] = name;
     return data;
+  }
+
+  void addEventListener(String event, EventListener listener) {
+    _object.callMethod('addEventListener'.toJS, event.toJS, listener.toJS);
   }
 }

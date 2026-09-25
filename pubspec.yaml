@@ -1,11 +1,11 @@
 name: cross_bluetooth_api
 description: The Cross Bluetooth API provides the ability to connect and interact with Bluetooth Low Energy peripherals.
-version: 0.0.1
+version: 0.2.0
 homepage:
 
 environment:
-  sdk: ">=2.16.0 <3.0.0"
-  flutter: ">=2.5.0"
+  sdk: ">=3.12.0 <4.0.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:

@@ -56,9 +56,7 @@ try {
 
 | Bluetooth  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
-| referringDevice |   |   |   |
 | getAvailability |   |   |   |
-| getDevices |   |   |   |
 | getDevices |   |   |   |
 | requestDevice | x | x | x |
 
@@ -67,7 +65,7 @@ try {
 | BluetoothDevice  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
 | gatt | x | x | x |
-| gattserverdisconnected |   |   |   |
+| gattserverdisconnected | x | x | x |
 | id | x | x | x |
 | name | x | x | x |
 
@@ -100,12 +98,12 @@ try {
 | uuid | x | x | x |
 | properties |  |   |  |
 | value | x | x | x |
-| oncharacteristicvaluechanged |  |   |  |
+| characteristicvaluechanged | x  | x | x |
 | getDescriptor |   |   |   |
 | getDescriptors |   |   |   |
 | readValue | x | x | x |
 | writeValue |  |   |  |
 | writeValueWithResponse |  |   |  |
 | writeValueWithoutResponse | x | x | x |
-| startNotifications |   |   |   |
-| stopNotifications |   |   |   |
+| startNotifications | x | x | x |
+| stopNotifications | x | x | x |

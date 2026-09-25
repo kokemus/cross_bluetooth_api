@@ -1,17 +1,18 @@
-import 'package:js/js_util.dart';
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 
 import 'bluetooth_device.dart';
 import 'bluetooth_remote_gatt_characteristic.dart';
 
 class BluetoothRemoteGATTService {
-  final Object _object;
+  final JSObject _object;
 
   bool get isPrimary {
-    return getProperty(_object, 'isPrimary');
+    return (_object.getProperty('isPrimary'.toJS) as JSBoolean).toDart;
   }
 
   String get uuid {
-    return getProperty(_object, 'uuid');
+    return (_object.getProperty('uuid'.toJS) as JSString).toDart;
   }
 
   BluetoothDevice? device;
@@ -20,8 +21,9 @@ class BluetoothRemoteGATTService {
 
   Future<BluetoothRemoteGATTCharacteristic> getCharacteristic(
       String characteristic) async {
-    final promise = callMethod(_object, 'getCharacteristic', [characteristic]);
-    final object = await promiseToFuture(promise);
+    final promise =
+        _object.callMethod('getCharacteristic'.toJS, characteristic.toJS);
+    final object = await (promise as JSPromise<JSObject>).toDart;
     return BluetoothRemoteGATTCharacteristic.fromObject(object, this);
   }
 

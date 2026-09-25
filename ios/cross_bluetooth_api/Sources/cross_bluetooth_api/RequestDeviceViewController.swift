@@ -29,7 +29,7 @@ class RequestDeviceViewController: UIViewController {
         return view
     }()
     private lazy var tableView: UITableView = {
-        let view = UITableView()
+        let view = UITableView(frame: .zero, style: .insetGrouped)
         view.tableFooterView = UIView()
         view.dataSource = self
         view.delegate = self
@@ -52,9 +52,6 @@ class RequestDeviceViewController: UIViewController {
     }
 
     override func viewDidLoad() {
-        if #available(iOS 13.0, *) {
-            view.backgroundColor = .systemBackground
-        }
         addViews()
         setupConstraints()
         NotificationCenter.default.addObserver(self, selector: #selector(willResignActive), name: UIApplication.willResignActiveNotification, object: nil)
@@ -74,7 +71,14 @@ class RequestDeviceViewController: UIViewController {
     }
     
     private func setupConstraints() {
+        navBar.translatesAutoresizingMaskIntoConstraints = false
         tableView.translatesAutoresizingMaskIntoConstraints = false
+
+        navBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16).isActive = true
+        navBar.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
+        navBar.rightAnchor.constraint(equalTo: view.rightAnchor).isActive = true
+        navBar.heightAnchor.constraint(equalToConstant: 56).isActive = true
+
         tableView.topAnchor.constraint(equalTo: navBar.bottomAnchor).isActive = true
         tableView.leftAnchor.constraint(equalTo: view.leftAnchor).isActive = true
         tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor).isActive = true
@@ -109,7 +113,7 @@ class RequestDeviceViewController: UIViewController {
                 }
             }
             if options.optionalServices != nil {
-                for service in options.optionalServices! {
+                for _ in options.optionalServices! {
                     // post filtering
                 }
             }
@@ -143,6 +147,9 @@ extension RequestDeviceViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        if #available(iOS 14.0, *) {
+            cell.backgroundConfiguration = UIBackgroundConfiguration.listGroupedCell()
+        }
         let peripheral = peripherals[indexPath.row]
         cell.textLabel?.text = peripheral.name ?? "Unknown (\(peripheral.identifier))"
         return cell

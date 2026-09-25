@@ -5,17 +5,17 @@
 Pod::Spec.new do |s|
   s.name             = 'cross_bluetooth_api'
   s.version          = '0.0.1'
-  s.summary          = 'A new flutter plugin project.'
+  s.summary          = 'Cross-platform Web Bluetooth style API for Flutter.'
   s.description      = <<-DESC
-A new flutter plugin project.
+The Cross Bluetooth API provides the ability to connect and interact with Bluetooth Low Energy peripherals.
                        DESC
-  s.homepage         = 'http://example.com'
-  s.license          = { :file => '../LICENSE' }
+  s.homepage         = 'https://github.com/kokemus/cross_bluetooth_api'
+  s.license          = { :type => 'UNKNOWN', :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
-  s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source           = { :git => 'https://github.com/kokemus/cross_bluetooth_api.git', :tag => s.version.to_s }
+  s.source_files     = 'cross_bluetooth_api/Sources/cross_bluetooth_api/**/*.swift', 'cross_bluetooth_api/Classes/**/*.{h,m}'
   s.dependency 'Flutter'
-  s.platform = :ios, '9.0'
+  s.platform = :ios, '13.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
