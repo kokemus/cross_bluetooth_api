@@ -1,6 +1,6 @@
 name: cross_bluetooth_api
 description: The Cross Bluetooth API provides the ability to connect and interact with Bluetooth Low Energy peripherals.
-version: 0.0.1
+version: 0.2.0
 homepage:
 
 environment:
