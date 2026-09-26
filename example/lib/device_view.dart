@@ -93,17 +93,31 @@ class DeviceView extends StatelessWidget {
                       _selectedService.value != null &&
                           _selectedCharacteristic.value != null
                       ? () async {
-                          _characteristicProvider.value =
-                              CharacteristicProvider(
-                                _device.value!,
-                                _selectedService.value!,
-                                _selectedCharacteristic.value!,
-                              );
-                          final value = await _characteristicProvider.value!
-                              .readValue();
-                          final bytes = Uint8List.sublistView(value).toString();
-                          final string = value.getString();
-                          _value.value = bytes + '\n$string';
+                          try {
+                            _characteristicProvider.value =
+                                CharacteristicProvider(
+                                  _device.value!,
+                                  _selectedService.value!,
+                                  _selectedCharacteristic.value!,
+                                );
+                            final value = await _characteristicProvider.value!
+                                .readValue();
+                            final bytes = Uint8List.sublistView(
+                              value,
+                            ).toString();
+                            var string = '';
+                            try {
+                              string = value.getString();
+                            } catch (_) {}
+                            _value.value = bytes + '\n$string';
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString()),
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          }
                         }
                       : null,
                   child: const Text('Read'),
@@ -134,13 +148,22 @@ class DeviceView extends StatelessWidget {
                       _selectedService.value != null &&
                           _selectedCharacteristic.value != null
                       ? () async {
-                          _characteristicProvider.value =
-                              CharacteristicProvider(
-                                _device.value!,
-                                _selectedService.value!,
-                                _selectedCharacteristic.value!,
-                              );
-                          _characteristicProvider.value!.startNotifications();
+                          try {
+                            _characteristicProvider.value =
+                                CharacteristicProvider(
+                                  _device.value!,
+                                  _selectedService.value!,
+                                  _selectedCharacteristic.value!,
+                                );
+                            _characteristicProvider.value!.startNotifications();
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString()),
+                                duration: const Duration(seconds: 5),
+                              ),
+                            );
+                          }
                         }
                       : null,
                   child: const Text('Notify'),
@@ -164,7 +187,10 @@ class DeviceView extends StatelessWidget {
                     final bytes = Uint8List.sublistView(
                       characteristicProvider!.value!,
                     ).toString();
-                    final string = characteristicProvider.value!.getString();
+                    var string = '';
+                    try {
+                      string = characteristicProvider.value!.getString();
+                    } catch (_) {}
                     final lastUpdated = characteristicProvider.lastUpdated;
                     return Expanded(
                       child: Text(bytes + '\n$string' + '\n$lastUpdated'),
