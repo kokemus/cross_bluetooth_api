@@ -68,6 +68,8 @@ try {
 | gattserverdisconnected | x | x | x |
 | id | x | x | x |
 | name | x | x | x |
+| watchAdvertisements |   |   |   |
+| forget |   |   |   |
 
 </br>
 
@@ -102,8 +104,7 @@ try {
 | getDescriptor |   |   |   |
 | getDescriptors |   |   |   |
 | readValue | x | x | x |
-| writeValue |  |   |  |
-| writeValueWithResponse |  |   |  |
+| writeValueWithResponse | x | x | x |
 | writeValueWithoutResponse | x | x | x |
 | startNotifications | x | x | x |
 | stopNotifications | x | x | x |

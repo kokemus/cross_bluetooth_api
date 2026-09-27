@@ -32,6 +32,15 @@ class BluetoothRemoteGATTCharacteristic {
     return object;
   }
 
+  Future writeValueWithResponse(ByteData value) async {
+    final promise = _object.callMethod(
+      'writeValueWithResponse'.toJS,
+      value.toJS,
+    );
+    final object = await (promise as JSPromise<JSAny?>).toDart;
+    return object;
+  }
+
   Future startNotifications() async {
     final promise = _object.callMethod('startNotifications'.toJS);
     final object = await (promise as JSPromise<JSAny?>).toDart;
