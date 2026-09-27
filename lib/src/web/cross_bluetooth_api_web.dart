@@ -49,6 +49,10 @@ class CrossBluetoothApiWeb {
         return await writeValueWithoutResponse(
           call.arguments.cast<String, dynamic>(),
         );
+      case 'writeValueWithResponse':
+        return await writeValueWithResponse(
+          call.arguments.cast<String, dynamic>(),
+        );
       case 'startNotifications':
         return await startNotifications(call.arguments.cast<String, dynamic>());
       case 'stopNotifications':
@@ -119,6 +123,17 @@ class CrossBluetoothApiWeb {
       arguments['characteristic'],
     );
     await characteristic?.writeValueWithoutResponse(
+      ByteData.sublistView(arguments['value']),
+    );
+  }
+
+  Future writeValueWithResponse(Map<String, dynamic> arguments) async {
+    final characteristic = await _getCharacteristic(
+      arguments['deviceId'],
+      arguments['serviceUUID'],
+      arguments['characteristic'],
+    );
+    await characteristic?.writeValueWithResponse(
       ByteData.sublistView(arguments['value']),
     );
   }

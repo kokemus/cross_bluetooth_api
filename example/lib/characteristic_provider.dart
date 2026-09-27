@@ -32,12 +32,16 @@ class BaseCharacteristicProvider<T> with ChangeNotifier {
   }
 
   Future<ByteData> readValue() async {
-    _characteristic =
-        _characteristic ??
-        await _device.gatt
-            .getPrimaryService(_serviceUuid)
-            .then((service) => service.getCharacteristic(_characteristicUuid));
-    return await _characteristic!.readValue();
+    return (await _getCharacteristic()).readValue();
+  }
+
+  Future<void> writeValue(ByteData value, {required bool withResponse}) async {
+    final characteristic = await _getCharacteristic();
+    if (withResponse) {
+      await characteristic.writeValueWithResponse(value);
+    } else {
+      await characteristic.writeValueWithoutResponse(value);
+    }
   }
 
   Future<void> startNotifications() async {
@@ -71,6 +75,13 @@ class BaseCharacteristicProvider<T> with ChangeNotifier {
             .getPrimaryService(_serviceUuid)
             .then((service) => service.getCharacteristic(_characteristicUuid));
     await _characteristic!.stopNotifications();
+  }
+
+  Future<RemoteGATTCharacteristic> _getCharacteristic() async {
+    _characteristic ??= await _device.gatt
+        .getPrimaryService(_serviceUuid)
+        .then((service) => service.getCharacteristic(_characteristicUuid));
+    return _characteristic!;
   }
 }
 

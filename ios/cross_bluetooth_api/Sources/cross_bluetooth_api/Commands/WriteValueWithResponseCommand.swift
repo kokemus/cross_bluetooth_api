@@ -33,7 +33,7 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
                 let deviceId = arguments["deviceId"] as? String,
                 let serviceUUIDString = arguments["serviceUUID"] as? String,
                 let characteristicUUIDString = arguments["characteristic"] as? String,
-                let value = arguments["value"] as? Data,
+                let value = dataArgument("value"),
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
                 pendingResult(FlutterError.networkError())
