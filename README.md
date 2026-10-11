@@ -21,6 +21,36 @@ dependencies:
 
 > The app's Info.plist must contain an NSBluetoothAlwaysUsageDescription key with a string value explaining to the user how the app uses this data.
 
+The plugin uses AccessorySetupKit for `Bluetooth.requestDevice` on iOS 18 and newer when at least one filter contains `productData`. ProductData is used to configure the AccessorySetupKit picker.
+
+Requests without product data and requests on older iOS versions, use the custom picker.
+
+For example to discover the Environmental Sensing service:
+
+```xml
+<key>NSAccessorySetupKitSupports</key>
+<array>
+    <string>Bluetooth</string>
+</array>
+<key>NSAccessorySetupBluetoothServices</key>
+<array>
+    <string>0x181A-0000-1000-8000-00805F9B34FB</string>
+</array>
+```
+
+```dart
+final device = await Bluetooth.requestDevice(
+    RequestDeviceOptions(
+        filters: [
+            Filter(
+                services: ['0000181a-0000-1000-8000-00805f9b34fb'],
+                productData: ProductData(name: 'Tag', image: 'images/tag.png'),
+            )
+        ]
+    ),
+);
+```
+
 ### Example
 
 ``` dart

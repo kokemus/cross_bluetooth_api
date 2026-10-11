@@ -121,8 +121,9 @@ class RequestDeviceViewController: UIViewController {
                 // nop
             }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + TimeInterval(60) ) { [self] in
-                stop()
+            DispatchQueue.main.asyncAfter(deadline: .now() + TimeInterval(60) ) { [weak self] in
+                guard let self, self.viewIfLoaded?.window != nil else { return }
+                self.stop()
             }
             peripherals.removeAll()
             tableView.reloadData()
@@ -135,7 +136,9 @@ class RequestDeviceViewController: UIViewController {
     }
     
     private func stop() {
-        manager.stopScan()
+        if manager.isScanning {
+            manager.stopScan()
+        }
         navItem.rightBarButtonItem = rescanItem
     }
 }
@@ -167,7 +170,7 @@ extension RequestDeviceViewController: UITableViewDelegate {
 extension RequestDeviceViewController: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         switch(manager.state) {
-        case .resetting:
+        case .unknown, .resetting:
             break
         case .unsupported:
             isUserCancelled = false

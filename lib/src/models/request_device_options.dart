@@ -3,8 +3,11 @@ class RequestDeviceOptions {
   List<String>? optionalServices;
   bool? acceptAllDevices;
 
-  RequestDeviceOptions(
-      {this.filters, this.optionalServices, this.acceptAllDevices});
+  RequestDeviceOptions({
+    this.filters,
+    this.optionalServices,
+    this.acceptAllDevices,
+  });
 
   RequestDeviceOptions.fromJson(Map<String, dynamic> json) {
     if (json['filters'] != null) {
@@ -36,13 +39,19 @@ class Filter {
   List<String>? services;
   String? name;
   String? namePrefix;
+  ProductData? productData;
 
-  Filter({this.services, this.name, this.namePrefix});
+  Filter({this.services, this.name, this.namePrefix, this.productData});
 
   Filter.fromJson(Map<String, dynamic> json) {
-    services = json['services'].cast<String>();
+    services = json['services']?.cast<String>();
     name = json['name'];
     namePrefix = json['namePrefix'];
+    if (json['productData'] != null) {
+      productData = ProductData.fromJson(
+        Map<String, dynamic>.from(json['productData']),
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -56,11 +65,29 @@ class Filter {
     if (namePrefix != null) {
       data['namePrefix'] = namePrefix;
     }
+    if (productData != null) {
+      data['productData'] = productData!.toJson();
+    }
     return data;
   }
 
   @override
   String toString() {
     return toJson().toString();
+  }
+}
+
+class ProductData {
+  String name;
+  String image;
+
+  ProductData({required this.name, required this.image});
+
+  ProductData.fromJson(Map<String, dynamic> json)
+    : name = json['name'] as String,
+      image = json['image'] as String;
+
+  Map<String, dynamic> toJson() {
+    return {'name': name, 'image': image};
   }
 }

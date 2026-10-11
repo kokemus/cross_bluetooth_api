@@ -19,6 +19,7 @@
 		A11111131CF9000F007C117D /* FakeDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22222231CF9000F007C117D /* FakeDeviceManager.swift */; };
 		A11111141CF9000F007C117D /* FakeFlutterResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22222241CF9000F007C117D /* FakeFlutterResult.swift */; };
 		A11111151CF9000F007C117D /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A222222A1CF9000F007C117D /* XCTest.framework */; };
+		A11111161CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 		A22222241CF9000F007C117D /* FakeFlutterResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeFlutterResult.swift; sourceTree = "<group>"; };
 		A22222291CF9000F007C117D /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A222222A1CF9000F007C117D /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
+		A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessoryRequestDeviceCommandTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,6 +161,7 @@
 			isa = PBXGroup;
 			children = (
 				A22222211CF9000F007C117D /* ConnectCommandTests.swift */,
+				A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */,
 			);
 			path = Commands;
 			sourceTree = "<group>";
@@ -336,6 +339,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A11111111CF9000F007C117D /* ConnectCommandTests.swift in Sources */,
+				A11111161CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift in Sources */,
 				A11111121CF9000F007C117D /* FakeBluetoothManager.swift in Sources */,
 				A11111131CF9000F007C117D /* FakeDeviceManager.swift in Sources */,
 				A11111141CF9000F007C117D /* FakeFlutterResult.swift in Sources */,
