@@ -40,13 +40,27 @@ class Filter {
   String? name;
   String? namePrefix;
   ProductData? productData;
+  List<ManufacturerData>? manufacturerData;
 
-  Filter({this.services, this.name, this.namePrefix, this.productData});
+  Filter({
+    this.services,
+    this.name,
+    this.namePrefix,
+    this.productData,
+    this.manufacturerData,
+  });
 
   Filter.fromJson(Map<String, dynamic> json) {
     services = json['services']?.cast<String>();
     name = json['name'];
     namePrefix = json['namePrefix'];
+    manufacturerData = (json['manufacturerData'] as List<dynamic>?)
+        ?.map(
+          (value) => ManufacturerData.fromJson(
+            Map<String, dynamic>.from(value as Map),
+          ),
+        )
+        .toList();
     if (json['productData'] != null) {
       productData = ProductData.fromJson(
         Map<String, dynamic>.from(json['productData']),
@@ -65,6 +79,11 @@ class Filter {
     if (namePrefix != null) {
       data['namePrefix'] = namePrefix;
     }
+    if (manufacturerData != null) {
+      data['manufacturerData'] = manufacturerData!
+          .map((value) => value.toJson())
+          .toList();
+    }
     if (productData != null) {
       data['productData'] = productData!.toJson();
     }
@@ -74,6 +93,31 @@ class Filter {
   @override
   String toString() {
     return toJson().toString();
+  }
+}
+
+class ManufacturerData {
+  int companyIdentifier;
+  List<int>? dataPrefix;
+  List<int>? mask;
+
+  ManufacturerData({
+    required this.companyIdentifier,
+    this.dataPrefix,
+    this.mask,
+  });
+
+  ManufacturerData.fromJson(Map<String, dynamic> json)
+    : companyIdentifier = json['companyIdentifier'] as int,
+      dataPrefix = (json['dataPrefix'] as List<dynamic>?)?.cast<int>(),
+      mask = (json['mask'] as List<dynamic>?)?.cast<int>();
+
+  Map<String, dynamic> toJson() {
+    return {
+      'companyIdentifier': companyIdentifier,
+      if (dataPrefix != null) 'dataPrefix': dataPrefix,
+      if (mask != null) 'mask': mask,
+    };
   }
 }
 
