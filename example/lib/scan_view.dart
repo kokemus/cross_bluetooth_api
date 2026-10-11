@@ -8,8 +8,8 @@ class ScanView extends StatefulWidget {
   const ScanView({
     super.key,
     required this.selectedDevice,
-    required this._services,
-  });
+    required ValueNotifier<List<String>> services,
+  }) : _services = services;
 
   final ValueNotifier<Device?> selectedDevice;
   final ValueNotifier<List<String>> _services;
@@ -23,6 +23,7 @@ class _ScanViewState extends State<ScanView> {
   ValueNotifier<List<String>> get _services => widget._services;
 
   final ValueNotifier<String?> _namePrefix = ValueNotifier<String?>(null);
+  int? _companyIdentifier;
   final ValueNotifier<List<String>?> _optionalServices =
       ValueNotifier<List<String>?>(null);
   final ValueNotifier<bool> _loading = ValueNotifier<bool>(false);
@@ -48,6 +49,12 @@ class _ScanViewState extends State<ScanView> {
           decoration: const InputDecoration(labelText: 'Name prefix'),
           onChanged: (value) {
             _namePrefix.value = value.isEmpty ? null : value;
+          },
+        ),
+        TextField(
+          decoration: const InputDecoration(labelText: 'Company identifier'),
+          onChanged: (value) {
+            _companyIdentifier = int.tryParse(value.trim());
           },
         ),
         ValueListenableBuilder(
@@ -146,6 +153,7 @@ class _ScanViewState extends State<ScanView> {
                       _loading.value = true;
                       final device = await requestDevice(
                         namePrefix: _namePrefix.value,
+                        companyIdentifier: _companyIdentifier,
                         requiredServices: _services.value,
                         optionalServices: _optionalServices.value,
                       );
@@ -186,17 +194,26 @@ class _ScanViewState extends State<ScanView> {
 
   Future<Device> requestDevice({
     String? namePrefix,
+    int? companyIdentifier,
     List<String>? requiredServices,
     List<String>? optionalServices,
   }) async {
     final acceptAllDevices =
-        (requiredServices?.isEmpty ?? true) && namePrefix == null;
+        (requiredServices?.isEmpty ?? true) &&
+        namePrefix == null &&
+        companyIdentifier == null;
     final device = await Bluetooth.requestDevice(
       RequestDeviceOptions(
         filters: [
           if (requiredServices?.isNotEmpty ?? false)
             Filter(services: requiredServices),
           if (namePrefix != null) Filter(namePrefix: namePrefix),
+          if (companyIdentifier != null)
+            Filter(
+              manufacturerData: [
+                ManufacturerData(companyIdentifier: companyIdentifier),
+              ],
+            ),
         ],
         optionalServices: optionalServices,
         acceptAllDevices: acceptAllDevices,
