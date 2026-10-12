@@ -72,7 +72,7 @@ class CrossBluetoothApiWeb {
     Map<String, dynamic> arguments,
   ) async {
     final options = RequestOptions.fromMap(arguments);
-    final object = await nativeBluetooth.requestTypedDevice(options).toDart;
+    final object = await nativeBluetooth.requestDevice(options.toJS()).toDart;
     final device = BluetoothDevice.fromObject(object);
     device.addEventListener('gattserverdisconnected', _onDisconnected);
     _devices.add(device);
