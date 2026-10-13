@@ -37,28 +37,31 @@ class RequestDeviceViewController: UIViewController {
         return view
     }()
 
-    private var manager: CBCentralManager!
+    private var manager: BluetoothManager!
     private var peripherals: [CBPeripheral] = []
 
     private var options: RequestDeviceOptions!
     private var delegate: RequestDeviceDelegate!
     private var isUserCancelled = true
 
-    convenience init(options: Dictionary<String, Any>, delegate: RequestDeviceDelegate) {
+    convenience init(manager: BluetoothManager, options: Dictionary<String, Any>, delegate: RequestDeviceDelegate) {
         self.init()
+        self.manager = manager
         self.options = RequestDeviceOptions.fromMap(options)
         self.delegate = delegate
-        manager = CBCentralManager(delegate: self, queue: .main)
     }
 
     override func viewDidLoad() {
         addViews()
         setupConstraints()
         NotificationCenter.default.addObserver(self, selector: #selector(willResignActive), name: UIApplication.willResignActiveNotification, object: nil)
+        manager.addDelegate(self)
+        updateState(manager.state)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
         stop()
+        manager.removeDelegate(self)
         NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
         if isBeingDismissed && isUserCancelled {
             delegate?.requestDevice(self, didFailWithError: .userCancelled)
@@ -167,9 +170,13 @@ extension RequestDeviceViewController: UITableViewDelegate {
     }
 }
 
-extension RequestDeviceViewController: CBCentralManagerDelegate {
+extension RequestDeviceViewController: BluetoothManagerDelegete {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        switch(manager.state) {
+        updateState(central.state)
+    }
+
+    private func updateState(_ state: CBManagerState) {
+        switch(state) {
         case .unknown, .resetting:
             break
         case .unsupported:

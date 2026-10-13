@@ -54,6 +54,7 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
                     )
                 }
                 return RequestDeviceCommand(
+                    manager: manager,
                     viewController: viewController,
                     arguments: arguments,
                     pendingResult: result

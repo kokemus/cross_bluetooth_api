@@ -3,7 +3,12 @@ import CoreBluetooth
 protocol BluetoothManagerDelegete: AnyObject, CBCentralManagerDelegate {}
 
 protocol BluetoothManager {
+    var state: CBManagerState { get }
+    var isScanning: Bool { get }
+
     func waitUntilReady() async -> Bool
+    func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?)
+    func stopScan()
     func connect(_ deviceId: String) -> Bool
     func disconnect(_ deviceId: String) -> Bool
     func addDelegate(_ delegate: BluetoothManagerDelegete)
@@ -23,6 +28,9 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
     private var readinessContinuations: [CheckedContinuation<Bool, Never>] = []
 
     private let delegates = NSHashTable<AnyObject>.weakObjects()
+
+    var state: CBManagerState { central.state }
+    var isScanning: Bool { central.isScanning }
 
     init(
         queue: DispatchQueue? = nil,
@@ -51,6 +59,14 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
                 readinessLock.unlock()
             }
         }
+    }
+
+    func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?) {
+        central.scanForPeripherals(withServices: serviceUUIDs, options: options)
+    }
+
+    func stopScan() {
+        central.stopScan()
     }
 
     func connect(_ deviceId: String) -> Bool {

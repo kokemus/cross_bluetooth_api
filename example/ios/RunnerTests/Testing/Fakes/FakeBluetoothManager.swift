@@ -13,6 +13,8 @@ private final class FakePeripheralObject: NSObject {
 }
 
 final class FakeBluetoothManager: BluetoothManager {
+    var state: CBManagerState = .poweredOn
+    var isScanning = false
     var connectReturnValue: Bool
     var connectedDeviceIds: [String] = []
     var disconnectedDeviceIds: [String] = []
@@ -28,6 +30,14 @@ final class FakeBluetoothManager: BluetoothManager {
     }
 
     func waitUntilReady() async -> Bool { true }
+
+    func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?) {
+        isScanning = true
+    }
+
+    func stopScan() {
+        isScanning = false
+    }
 
     func connect(_ deviceId: String) -> Bool {
         connectedDeviceIds.append(deviceId)
