@@ -27,6 +27,8 @@ final class FakeBluetoothManager: BluetoothManager {
         self.connectReturnValue = connectReturnValue
     }
 
+    func waitUntilReady() async -> Bool { true }
+
     func connect(_ deviceId: String) -> Bool {
         connectedDeviceIds.append(deviceId)
         connectLock.lock()

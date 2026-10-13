@@ -3,6 +3,7 @@ import CoreBluetooth
 protocol BluetoothManagerDelegete: AnyObject, CBCentralManagerDelegate {}
 
 protocol BluetoothManager {
+    func waitUntilReady() async -> Bool
     func connect(_ deviceId: String) -> Bool
     func disconnect(_ deviceId: String) -> Bool
     func addDelegate(_ delegate: BluetoothManagerDelegete)
@@ -18,6 +19,8 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
 
     private let central: CBCentralManager
     private var deviceManagersById: [String: DeviceManager] = [:]
+    private let readinessLock = NSLock()
+    private var readinessContinuations: [CheckedContinuation<Bool, Never>] = []
 
     private let delegates = NSHashTable<AnyObject>.weakObjects()
 
@@ -34,6 +37,20 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
         super.init()
 
         central.delegate = self
+    }
+
+    func waitUntilReady() async -> Bool {
+        await withCheckedContinuation { continuation in
+            readinessLock.lock()
+            let state = central.state
+            if state == .poweredOn || state == .poweredOff {
+                readinessLock.unlock()
+                continuation.resume(returning: state == .poweredOn)
+            } else {
+                readinessContinuations.append(continuation)
+                readinessLock.unlock()
+            }
+        }
     }
 
     func connect(_ deviceId: String) -> Bool {
@@ -117,6 +134,21 @@ extension BluetoothManagerImp: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(
         _ central: CBCentralManager
     ) {
+        readinessLock.lock()
+        let state = central.state
+        let continuations: [CheckedContinuation<Bool, Never>]
+        if state == .poweredOn || state == .poweredOff {
+            continuations = readinessContinuations
+            readinessContinuations.removeAll()
+        } else {
+            continuations = []
+        }
+        readinessLock.unlock()
+
+        for continuation in continuations {
+            continuation.resume(returning: state == .poweredOn)
+        }
+
         notify {
             $0.centralManagerDidUpdateState(central)
         }

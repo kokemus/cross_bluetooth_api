@@ -198,25 +198,22 @@ class _ScanViewState extends State<ScanView> {
     List<String>? requiredServices,
     List<String>? optionalServices,
   }) async {
-    final acceptAllDevices =
-        (requiredServices?.isEmpty ?? true) &&
-        namePrefix == null &&
-        companyIdentifier == null;
+    final filters = [
+      if (requiredServices?.isNotEmpty ?? false)
+        Filter(services: requiredServices),
+      if (namePrefix != null) Filter(namePrefix: namePrefix),
+      if (companyIdentifier != null)
+        Filter(
+          manufacturerData: [
+            ManufacturerData(companyIdentifier: companyIdentifier),
+          ],
+        ),
+    ];
     final device = await Bluetooth.requestDevice(
       RequestDeviceOptions(
-        filters: [
-          if (requiredServices?.isNotEmpty ?? false)
-            Filter(services: requiredServices),
-          if (namePrefix != null) Filter(namePrefix: namePrefix),
-          if (companyIdentifier != null)
-            Filter(
-              manufacturerData: [
-                ManufacturerData(companyIdentifier: companyIdentifier),
-              ],
-            ),
-        ],
+        filters: filters.isNotEmpty ? filters : null,
         optionalServices: optionalServices,
-        acceptAllDevices: acceptAllDevices,
+        acceptAllDevices: filters.isEmpty,
       ),
     );
     await device.gatt.connect();

@@ -119,6 +119,10 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
 
         if let command {
             Task {
+                guard await manager.waitUntilReady() else {
+                    result(FlutterError.networkError())
+                    return
+                }
                 await command.execute()
             }
         } else {
