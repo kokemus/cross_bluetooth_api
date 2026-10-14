@@ -98,32 +98,6 @@ class RequestDeviceViewController: UIViewController {
     
     private func start() {
         if !manager.isScanning {
-            var serviceUUIDs: [CBUUID]? = nil
-            if options.filters != nil {
-                for filter in options.filters! {
-                    if filter.services != nil {
-                        serviceUUIDs = []
-                        for service in filter.services! {
-                            serviceUUIDs!.append(CBUUID(string: service))
-                        }
-                    }
-                    if filter.name != nil {
-                        // post filtering
-                    }
-                    if filter.namePrefix != nil {
-                        // post filtering
-                    }
-                }
-            }
-            if options.optionalServices != nil {
-                for _ in options.optionalServices! {
-                    // post filtering
-                }
-            }
-            if (options.acceptAllDevices) {
-                // nop
-            }
-            
             DispatchQueue.main.asyncAfter(deadline: .now() + TimeInterval(60) ) { [weak self] in
                 guard let self, self.viewIfLoaded?.window != nil else { return }
                 self.stop()
@@ -131,7 +105,7 @@ class RequestDeviceViewController: UIViewController {
             peripherals.removeAll()
             tableView.reloadData()
             manager.scanForPeripherals(
-                withServices: serviceUUIDs,
+                withServices: options.scanServiceUUIDs,
                 options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
             )
         }
@@ -197,6 +171,7 @@ extension RequestDeviceViewController: BluetoothManagerDelegete {
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        guard options.matches(name: peripheral.name, advertisementData: advertisementData) else { return }
         if !peripherals.contains(where: { $0.identifier == peripheral.identifier }) {
             peripherals.append(peripheral)
             tableView.reloadData()

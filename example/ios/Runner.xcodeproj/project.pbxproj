@@ -20,6 +20,7 @@
 		A11111141CF9000F007C117D /* FakeFlutterResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = A22222241CF9000F007C117D /* FakeFlutterResult.swift */; };
 		A11111151CF9000F007C117D /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A222222A1CF9000F007C117D /* XCTest.framework */; };
 		A11111161CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */; };
+		A11111171CF9000F007C117D /* RequestDeviceOptionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222C1CF9000F007C117D /* RequestDeviceOptionsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 		A22222291CF9000F007C117D /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A222222A1CF9000F007C117D /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessoryRequestDeviceCommandTests.swift; sourceTree = "<group>"; };
+		A222222C1CF9000F007C117D /* RequestDeviceOptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestDeviceOptionsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -151,10 +153,19 @@
 		A22222251CF9000F007C117D /* RunnerTests */ = {
 			isa = PBXGroup;
 			children = (
+				A222222D1CF9000F007C117D /* Models */,
 				A22222261CF9000F007C117D /* Commands */,
 				A22222271CF9000F007C117D /* Testing */,
 			);
 			path = RunnerTests;
+			sourceTree = "<group>";
+		};
+		A222222D1CF9000F007C117D /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A222222C1CF9000F007C117D /* RequestDeviceOptionsTests.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 		A22222261CF9000F007C117D /* Commands */ = {
@@ -340,6 +351,7 @@
 			files = (
 				A11111111CF9000F007C117D /* ConnectCommandTests.swift in Sources */,
 				A11111161CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift in Sources */,
+				A11111171CF9000F007C117D /* RequestDeviceOptionsTests.swift in Sources */,
 				A11111121CF9000F007C117D /* FakeBluetoothManager.swift in Sources */,
 				A11111131CF9000F007C117D /* FakeDeviceManager.swift in Sources */,
 				A11111141CF9000F007C117D /* FakeFlutterResult.swift in Sources */,

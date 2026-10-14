@@ -8,8 +8,8 @@ class ScanView extends StatefulWidget {
   const ScanView({
     super.key,
     required this.selectedDevice,
-    required ValueNotifier<List<String>> services,
-  }) : _services = services;
+    required this._services,
+  });
 
   final ValueNotifier<Device?> selectedDevice;
   final ValueNotifier<List<String>> _services;
