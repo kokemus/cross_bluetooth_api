@@ -5,6 +5,8 @@ import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothStatusCodes
+import android.os.Build
 import androidx.annotation.RequiresPermission
 import java.util.UUID
 
@@ -54,8 +56,12 @@ interface DeviceManager {
         bool: Boolean
     ): Boolean
 
-    fun writeDescriptor(descriptor: BluetoothGattDescriptor): Boolean
-    fun writeCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean
+    fun writeDescriptor(descriptor: BluetoothGattDescriptor, value: ByteArray): Boolean
+    fun writeCharacteristic(
+        characteristic: BluetoothGattCharacteristic,
+        value: ByteArray,
+        writeType: Int
+    ): Boolean
 }
 
 class DeviceManagerImp(private val gatt: BluetoothGatt) : DeviceManager {
@@ -99,13 +105,32 @@ class DeviceManagerImp(private val gatt: BluetoothGatt) : DeviceManager {
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    override fun writeDescriptor(descriptor: BluetoothGattDescriptor): Boolean {
-        return gatt.writeDescriptor(descriptor)
+    override fun writeDescriptor(descriptor: BluetoothGattDescriptor, value: ByteArray): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            gatt.writeDescriptor(descriptor, value) == BluetoothStatusCodes.SUCCESS
+        } else {
+            @Suppress("DEPRECATION")
+            descriptor.value = value
+            @Suppress("DEPRECATION")
+            gatt.writeDescriptor(descriptor)
+        }
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    override fun writeCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean {
-        return gatt.writeCharacteristic(characteristic)
+    override fun writeCharacteristic(
+        characteristic: BluetoothGattCharacteristic,
+        value: ByteArray,
+        writeType: Int
+    ): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            gatt.writeCharacteristic(characteristic, value, writeType) == BluetoothStatusCodes.SUCCESS
+        } else {
+            @Suppress("DEPRECATION")
+            characteristic.value = value
+            characteristic.writeType = writeType
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(characteristic)
+        }
     }
 
     internal fun notifyServicesDiscovered(status: Int) {

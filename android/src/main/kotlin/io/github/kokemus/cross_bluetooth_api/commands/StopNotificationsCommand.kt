@@ -55,8 +55,8 @@ class StopNotificationsCommand(
                 return@suspendCancellableCoroutine
             }
 
-            val cccd = characteristic.getDescriptor(clientCharacteristicConfigUuid)
-            if (cccd == null) {
+            val descriptor = characteristic.getDescriptor(clientCharacteristicConfigUuid)
+            if (descriptor == null) {
                 pendingResult.notSupportedError()
                 cleanupAndResume()
                 return@suspendCancellableCoroutine
@@ -69,8 +69,7 @@ class StopNotificationsCommand(
             deviceManager.addListener(this)
 
             if (deviceManager.setCharacteristicNotification(characteristic, false)) {
-                cccd.value = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-                if (!deviceManager.writeDescriptor(cccd)) {
+                if (!deviceManager.writeDescriptor(descriptor, BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE)) {
                     pendingResult.networkError()
                     cleanupAndResume()
                 }

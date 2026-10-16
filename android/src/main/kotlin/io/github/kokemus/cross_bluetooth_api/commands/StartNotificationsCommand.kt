@@ -64,8 +64,8 @@ class StartNotificationsCommand(
                 return@suspendCancellableCoroutine
             }
 
-            val cccd = characteristic.getDescriptor(clientCharacteristicConfigUuid)
-            if (cccd == null) {
+            val descriptor = characteristic.getDescriptor(clientCharacteristicConfigUuid)
+            if (descriptor == null) {
                 pendingResult.notSupportedError()
                 cleanupAndResume()
                 return@suspendCancellableCoroutine
@@ -84,8 +84,7 @@ class StartNotificationsCommand(
             deviceManager.addListener(this)
 
             if (deviceManager.setCharacteristicNotification(characteristic, true)) {
-                cccd.value = enableValue
-                if (!deviceManager.writeDescriptor(cccd)) {
+                if (!deviceManager.writeDescriptor(descriptor, enableValue)) {
                     pendingResult.networkError()
                     cleanupAndResume()
                 }

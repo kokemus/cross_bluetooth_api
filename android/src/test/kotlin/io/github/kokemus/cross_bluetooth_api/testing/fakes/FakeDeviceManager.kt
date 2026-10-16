@@ -35,9 +35,13 @@ class FakeDeviceManager(
         bool: Boolean
     ): Boolean = false
 
-    override fun writeDescriptor(descriptor: BluetoothGattDescriptor): Boolean = false
+    override fun writeDescriptor(descriptor: BluetoothGattDescriptor, value: ByteArray): Boolean = false
 
-    override fun writeCharacteristic(characteristic: BluetoothGattCharacteristic): Boolean = false
+    override fun writeCharacteristic(
+        characteristic: BluetoothGattCharacteristic,
+        value: ByteArray,
+        writeType: Int
+    ): Boolean = false
 
     fun emitServicesDiscovered(status: Int) {
         listeners.toList().forEach { it.onServicesDiscovered(this, status) }

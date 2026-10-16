@@ -24,6 +24,7 @@ class WriteValueWithoutResponseCommand(
     private var targetServiceUUID: String? = null
     private var targetCharacteristicUUID: String? = null
     private var targetDeviceManager: DeviceManager? = null
+    private var writtenValue: ByteArray? = null
     private var completed = false
     private var continuation: CancellableContinuation<Unit>? = null
 
@@ -56,9 +57,9 @@ class WriteValueWithoutResponseCommand(
             targetDeviceManager = deviceManager
             deviceManager.addListener(this)
 
-            characteristic.value = value
-            characteristic.writeType = WRITE_TYPE_NO_RESPONSE
-            if (!deviceManager.writeCharacteristic(characteristic)) {
+            val valueToWrite = value.copyOf()
+            writtenValue = valueToWrite
+            if (!deviceManager.writeCharacteristic(characteristic, valueToWrite, WRITE_TYPE_NO_RESPONSE)) {
                 pendingResult.networkError()
                 cleanupAndResume()
             }
@@ -84,7 +85,7 @@ class WriteValueWithoutResponseCommand(
 
         completed = true
         if (status == GATT_SUCCESS) {
-            pendingResult.success(characteristic.value)
+            pendingResult.success(writtenValue)
         } else {
             pendingResult.networkError()
         }
