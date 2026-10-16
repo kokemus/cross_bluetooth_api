@@ -1,6 +1,5 @@
 package io.github.kokemus.cross_bluetooth_api.models
 
-import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.os.ParcelUuid
@@ -13,6 +12,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import android.bluetooth.BluetoothManager
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [35])
@@ -43,8 +45,10 @@ class RequestDeviceOptionsTest {
         bytes.add(0)
         val record = ScanRecord::class.java.getDeclaredMethod("parseFromBytes", ByteArray::class.java)
             .invoke(null, bytes.toByteArray()) as ScanRecord
-        val device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice("00:11:22:33:44:55")
-        return ScanResult(device, record, -50, 0L)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val adapter = requireNotNull(context.getSystemService(BluetoothManager::class.java).adapter)
+        val device = adapter.getRemoteDevice("00:11:22:33:44:55")
+        return ScanResult(device, 0, 0, 0, 0, 0, 0, -50, record, 0)
     }
 
     @Test
@@ -112,9 +116,9 @@ class RequestDeviceOptionsTest {
             "acceptAllDevices" to false
         ))
         assertTrue(options.nativeScanFilters().isEmpty())
-        assertTrue(options.matches(scanResult("Galaxy Watch8 (GTTP)")))
+        assertTrue(options.matches(scanResult("Galaxy Watch8")))
         val result = scanResult()
-        shadowOf(result.device).setName("Galaxy Watch8 (GTTP)")
+        shadowOf(result.device).setName("Galaxy Watch8")
         assertTrue(options.matches(result))
     }
 
