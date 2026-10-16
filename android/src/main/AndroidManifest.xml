@@ -11,6 +11,8 @@
 
     <application android:theme="@android:style/Theme.DeviceDefault.DayNight"
         tools:ignore="NewApi">
-        <activity android:name=".RequestDeviceActivity" android:label="Scanning"/>
+        <activity android:name=".RequestDeviceActivity"
+            android:label="Scanning"
+            android:enableOnBackInvokedCallback="true"/>
     </application>
 </manifest>
