@@ -12,16 +12,17 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.TypedValue
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
 import android.widget.ArrayAdapter
+import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import android.widget.Toolbar
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCallback
@@ -31,8 +32,10 @@ import java.io.Serializable
 import io.github.kokemus.cross_bluetooth_api.models.Device
 import io.github.kokemus.cross_bluetooth_api.models.RequestDeviceOptions
 import java.lang.Exception
+import androidx.core.view.size
+import androidx.core.view.get
 
-class RequestDeviceActivity: ComponentActivity() {
+class RequestDeviceActivity: SheetActivity() {
     companion object {
         const val RESULT_TYPE_ERROR = RESULT_FIRST_USER
         const val RESULT_NOT_FOUND_ERROR = RESULT_FIRST_USER + 1
@@ -46,9 +49,10 @@ class RequestDeviceActivity: ComponentActivity() {
     private val enableBluetooth = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
         object : ActivityResultCallback<ActivityResult> {
-            @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
+            @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN])
             override fun onActivityResult(result: ActivityResult) {
                 if (result.resultCode == RESULT_OK) {
+                    scanner = (getSystemService(BLUETOOTH_SERVICE) as BluetoothManager).adapter?.bluetoothLeScanner
                     start()
                 } else {
                     setResult(RESULT_INVALID_STATE_ERROR)
@@ -61,10 +65,12 @@ class RequestDeviceActivity: ComponentActivity() {
     private var nativeFilters: List<ScanFilter> = emptyList()
     private lateinit var devices: ArrayAdapter<BluetoothDevice>
     private lateinit var listView: ListView
+    private var menu: Menu? = null
+    private var scanning = false
     private val callback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
-            if (result != null) {
+            if (result != null && scanning && !isDismissing) {
                 val accepted = !options.requiresPostFiltering || options.matches(result)
                 if (!accepted) return
                 if (devices.getPosition(result.device) < 0) {
@@ -78,6 +84,7 @@ class RequestDeviceActivity: ComponentActivity() {
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN])
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        title = "Scanning"
         if (intent.hasExtra("options")) {
             val serializedOptions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getSerializableExtra("options", Serializable::class.java)
@@ -114,16 +121,10 @@ class RequestDeviceActivity: ComponentActivity() {
 
         listView = ListView(this).apply {
             adapter = devices
-            if (Build.VERSION.SDK_INT >= 35 && applicationInfo.targetSdkVersion >= 35) {
-                setOnApplyWindowInsetsListener { view, insets ->
-                    val systemBars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                    view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-                    insets
-                }
-            }
         }
 
         listView.setOnItemClickListener { _, _, i, _ ->
+            if (isDismissing) return@setOnItemClickListener
             val device = devices.getItem(i)
             setResult(
                 RESULT_OK,
@@ -135,7 +136,18 @@ class RequestDeviceActivity: ComponentActivity() {
             finish()
         }
 
-        setContentView(listView)
+        val toolbar = createToolbar()
+        val actionBarSize = TypedValue().also {
+            theme.resolveAttribute(android.R.attr.actionBarSize, it, true)
+        }.getDimension(resources.displayMetrics).toInt()
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(toolbar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, actionBarSize))
+            addView(listView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        }
+        setContentView(content)
+        setActionBar(toolbar)
+        configureSheet(savedInstanceState)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
@@ -147,19 +159,45 @@ class RequestDeviceActivity: ComponentActivity() {
         })
 
         val bluetoothAdapter = (getSystemService(BLUETOOTH_SERVICE) as BluetoothManager).adapter
-        scanner = bluetoothAdapter?.bluetoothLeScanner
-        if (scanner != null) {
-            if (bluetoothAdapter?.isEnabled == false) {
+        if (bluetoothAdapter != null) {
+            if (!bluetoothAdapter.isEnabled) {
                 enableBluetooth.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                 return
             } else {
-                start()
-                return
+                scanner = bluetoothAdapter.bluetoothLeScanner
+                if (scanner != null) {
+                    start()
+                    return
+                }
             }
         }
         setResult(RESULT_NOT_SUPPORTED_ERROR)
         finish()
         return
+    }
+
+    private fun createToolbar(): Toolbar {
+        val toolbar = Toolbar(this)
+        val actionBarAttributes = theme.obtainStyledAttributes(
+            null,
+            intArrayOf(android.R.attr.background),
+            android.R.attr.actionBarStyle,
+            0
+        )
+        try {
+            toolbar.background = actionBarAttributes.getDrawable(0)
+        } finally {
+            actionBarAttributes.recycle()
+        }
+        val titleAttributes = theme.obtainStyledAttributes(intArrayOf(android.R.attr.textColorPrimary))
+        try {
+            titleAttributes.getColorStateList(0)?.let {
+                toolbar.setTitleTextColor(it.defaultColor)
+            }
+        } finally {
+            titleAttributes.recycle()
+        }
+        return toolbar
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
@@ -168,35 +206,59 @@ class RequestDeviceActivity: ComponentActivity() {
         stop()
     }
 
-    private var menu: Menu? = null
-
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
         this.menu = menu
-        val progressBar = ProgressBar(this).apply {
-            scaleX = 0.5f
-            scaleY = 0.5f
-        }
-        menu!!.add("Re-scan").apply {
-            setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS)
-            actionView = progressBar
-        }
+        updateScanStatus()
         return true
+    }
+
+    override fun onDismissStarted() {
+        try {
+            stop()
+        } catch (_: SecurityException) {
+            // Permission may have been revoked while the chooser was visible.
+        }
+        if (::listView.isInitialized) listView.isEnabled = false
+        menu?.let {
+            for (index in 0 until it.size) it[index].isEnabled = false
+        }
+    }
+
+    private fun updateScanStatus() {
+        val currentMenu = menu ?: return
+        currentMenu.clear()
+        currentMenu.add("Re-scan").apply {
+            setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            isEnabled = !isDismissing
+            if (scanning) {
+                actionView = ProgressBar(this@RequestDeviceActivity).apply {
+                    scaleX = 0.5f
+                    scaleY = 0.5f
+                }
+            } else {
+                setOnMenuItemClickListener(object : MenuItem.OnMenuItemClickListener {
+                    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
+                    override fun onMenuItemClick(item: MenuItem): Boolean {
+                        start()
+                        return true
+                    }
+                })
+            }
+        }
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun start() {
+        if (isDismissing) return
+        stop()
         devices.clear()
-        val progressBar = ProgressBar(this).apply {
-            scaleX = 0.5f
-            scaleY = 0.5f
+        if (scanner == null) {
+            setResult(RESULT_NOT_SUPPORTED_ERROR)
+            finish()
+            return
         }
-        if (menu != null) {
-            menu!!.clear()
-            menu!!.add("Re-scan").apply {
-                setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                actionView = progressBar
-            }
-        }
+        scanning = true
+        updateScanStatus()
 
         val settings = ScanSettings.Builder()
             .setScanMode(SCAN_MODE_LOW_LATENCY)
@@ -218,16 +280,15 @@ class RequestDeviceActivity: ComponentActivity() {
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun stop() {
         handler.removeCallbacksAndMessages(null)
-        if (menu != null) {
-            menu!!.clear()
-            menu!!.add("Re-scan").apply {
-                setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS)
-                setOnMenuItemClickListener {
-                    start()
-                    true
-                }
+        val wasScanning = scanning
+        scanning = false
+        updateScanStatus()
+        if (wasScanning) {
+            try {
+                scanner?.stopScan(callback)
+            } catch (_: SecurityException) {
+                // Cleanup must remain safe after permission revocation.
             }
         }
-        scanner?.stopScan(callback)
     }
 }
