@@ -1,4 +1,4 @@
-package io.github.kokemus.cross_bluetooth_api
+package io.github.kokemus.cross_bluetooth_api.views
 
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter

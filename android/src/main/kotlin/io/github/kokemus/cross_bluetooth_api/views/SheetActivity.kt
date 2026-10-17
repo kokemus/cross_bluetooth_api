@@ -1,4 +1,4 @@
-package io.github.kokemus.cross_bluetooth_api
+package io.github.kokemus.cross_bluetooth_api.views
 
 import android.animation.ValueAnimator
 import android.content.res.Configuration

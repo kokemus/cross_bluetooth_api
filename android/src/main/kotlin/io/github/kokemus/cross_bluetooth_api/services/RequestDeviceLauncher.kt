@@ -5,7 +5,7 @@ import android.content.Intent
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
-import io.github.kokemus.cross_bluetooth_api.RequestDeviceActivity
+import io.github.kokemus.cross_bluetooth_api.views.RequestDeviceActivity
 import io.github.kokemus.cross_bluetooth_api.extensions.invalidStateError
 import io.github.kokemus.cross_bluetooth_api.extensions.notFoundError
 import io.github.kokemus.cross_bluetooth_api.extensions.notSupportedError
