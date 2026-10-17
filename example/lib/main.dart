@@ -18,6 +18,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.system,
       home: Scaffold(
         appBar: AppBar(title: const Text('Cross Bluetooth API')),
         body: LayoutBuilder(
