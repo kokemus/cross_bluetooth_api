@@ -120,9 +120,17 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
 
         if let command {
             Task {
-                guard await manager.waitUntilReady() else {
-                    result(FlutterError.networkError())
-                    return
+                let requiresManagerReady: Bool
+                if #available(iOS 18.0, *) {
+                    requiresManagerReady = !(command is AccessoryRequestDeviceCommand)
+                } else {
+                    requiresManagerReady = true
+                }
+                if requiresManagerReady {
+                    guard await manager.waitUntilReady() else {
+                        result(FlutterError.networkError())
+                        return
+                    }
                 }
                 await command.execute()
             }

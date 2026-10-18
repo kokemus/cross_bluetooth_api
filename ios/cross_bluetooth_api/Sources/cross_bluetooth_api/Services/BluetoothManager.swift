@@ -24,10 +24,11 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
 
     private let central: CBCentralManager
     private var deviceManagersById: [String: DeviceManager] = [:]
-    private let readinessLock = NSLock()
-    private var readinessContinuations: [CheckedContinuation<Bool, Never>] = []
 
     private let delegates = NSHashTable<AnyObject>.weakObjects()
+
+    private static let readinessTimeout: UInt64 = 1_000_000_000
+    private static let readinessPollingInterval: UInt64 = 50_000_000
 
     var state: CBManagerState { central.state }
     var isScanning: Bool { central.isScanning }
@@ -48,17 +49,15 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
     }
 
     func waitUntilReady() async -> Bool {
-        await withCheckedContinuation { continuation in
-            readinessLock.lock()
-            let state = central.state
-            if state == .poweredOn || state == .poweredOff {
-                readinessLock.unlock()
-                continuation.resume(returning: state == .poweredOn)
-            } else {
-                readinessContinuations.append(continuation)
-                readinessLock.unlock()
+        let deadline = DispatchTime.now().uptimeNanoseconds + Self.readinessTimeout
+        while central.state != .poweredOn, DispatchTime.now().uptimeNanoseconds < deadline {
+            do {
+                try await Task.sleep(nanoseconds: Self.readinessPollingInterval)
+            } catch {
+                return false
             }
         }
+        return central.state == .poweredOn
     }
 
     func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?) {
@@ -150,21 +149,6 @@ extension BluetoothManagerImp: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(
         _ central: CBCentralManager
     ) {
-        readinessLock.lock()
-        let state = central.state
-        let continuations: [CheckedContinuation<Bool, Never>]
-        if state == .poweredOn || state == .poweredOff {
-            continuations = readinessContinuations
-            readinessContinuations.removeAll()
-        } else {
-            continuations = []
-        }
-        readinessLock.unlock()
-
-        for continuation in continuations {
-            continuation.resume(returning: state == .poweredOn)
-        }
-
         notify {
             $0.centralManagerDidUpdateState(central)
         }
