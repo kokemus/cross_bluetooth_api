@@ -107,18 +107,42 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
     private func makeDisplayItems() -> [ASPickerDisplayItem]? {
         let options = RequestDeviceOptions.fromMap(arguments)
         guard !options.acceptAllDevices,
-              let filters = options.filters, !filters.isEmpty,
-              let image = UIImage(systemName: "sensor.tag.radiowaves.forward") else {
+              let filters = options.filters, !filters.isEmpty else {
             return nil
         }
 
         var items: [ASPickerDisplayItem] = []
 
         for filter in filters {
-            guard (filter.services?.count ?? 0) <= 1 else { return nil }
+            guard let productData = filter.productData,
+                  let productImage = UIImage(named: FlutterDartProject.lookupKey(forAsset: productData.image)),
+                  (filter.manufacturerData?.count ?? 0) <= 1,
+                  (filter.services?.count ?? 0) <= 1 else { return nil }
             let descriptor = ASDiscoveryDescriptor()
             if let service = filter.services?.first {
                 descriptor.bluetoothServiceUUID = CBUUID(string: service)
+            }
+            if let manufacturerData = filter.manufacturerData?.first {
+                guard let companyIdentifier = UInt16(exactly: manufacturerData.companyIdentifier) else {
+                    return nil
+                }
+                descriptor.bluetoothCompanyIdentifier = ASBluetoothCompanyIdentifier(rawValue: companyIdentifier)
+
+                let prefix = manufacturerData.dataPrefix ?? []
+                let prefixBytes = prefix.compactMap(UInt8.init(exactly:))
+                guard prefixBytes.count == prefix.count else { return nil }
+                if !prefixBytes.isEmpty {
+                    descriptor.bluetoothManufacturerDataBlob = Data(prefixBytes)
+                }
+
+                if let mask = manufacturerData.mask {
+                    let maskBytes = mask.compactMap(UInt8.init(exactly:))
+                    guard maskBytes.count == mask.count,
+                          maskBytes.count == prefixBytes.count else { return nil }
+                    if !maskBytes.isEmpty {
+                        descriptor.bluetoothManufacturerDataMask = Data(maskBytes)
+                    }
+                }
             }
             if let prefix = filter.namePrefix {
                 guard !prefix.isEmpty else { return nil }
@@ -129,14 +153,13 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
                     return nil
                 }
             }
-            guard descriptor.bluetoothServiceUUID != nil || descriptor.bluetoothNameSubstring != nil else {
+            guard descriptor.bluetoothServiceUUID != nil
+                || descriptor.bluetoothNameSubstring != nil
+                || !(filter.manufacturerData?.isEmpty ?? true) else {
                 return nil
             }
-            let productImage = filter.productData.flatMap {
-                UIImage(named: FlutterDartProject.lookupKey(forAsset: $0.image))
-            } ?? image
             items.append(ASPickerDisplayItem(
-                name: filter.productData?.name ?? filter.name ?? "Bluetooth Device",
+                name: productData.name,
                 productImage: productImage,
                 descriptor: descriptor
             ))

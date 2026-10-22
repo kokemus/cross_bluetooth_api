@@ -10,7 +10,10 @@ import XCTest
 final class AccessoryRequestDeviceCommandTests: XCTestCase {
     private func makeCommand(
         session: FakeAccessorySession,
-        arguments: [String: AnyObject] = ["filters": [["services": ["180A"]]] as AnyObject],
+        arguments: [String: AnyObject] = ["filters": [[
+            "services": ["180A"],
+            "productData": ["name": "Sensor", "image": "images/tag.png"]
+        ]] as AnyObject],
         pendingResult: @escaping FlutterResult
     ) -> AccessoryRequestDeviceCommand {
         AccessoryRequestDeviceCommand(
@@ -85,30 +88,57 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         XCTAssertEqual(item.productImage.pngData(), expectedImage.pngData())
     }
 
-    func test_execute_keepsProductNameWithFallbackForMissingImage() async throws {
+    func test_execute_usesManufacturerDataInDiscoveryDescriptor() async throws {
         let session = FakeAccessorySession()
         let command = makeCommand(session: session, arguments: [
             "filters": [[
-                "services": ["180A"],
-                "productData": ["name": "Sensor", "image": "images/missing.png"]
+                "manufacturerData": [[
+                    "companyIdentifier": 0x1234,
+                    "dataPrefix": [1, 2],
+                    "mask": [255, 240]
+                ]],
+                "productData": ["name": "Sensor", "image": "images/tag.png"]
             ]] as AnyObject
         ]) { _ in }
 
         await command.execute()
         command.handle(.activated)
 
-        let item = try XCTUnwrap(session.pickerItems.first)
-        let expectedImage = try XCTUnwrap(UIImage(systemName: "sensor.tag.radiowaves.forward"))
-        XCTAssertEqual(item.name, "Sensor")
-        XCTAssertEqual(item.productImage.pngData(), expectedImage.pngData())
+        let descriptor = try XCTUnwrap(session.pickerItems.first?.descriptor)
+        XCTAssertEqual(descriptor.bluetoothCompanyIdentifier, ASBluetoothCompanyIdentifier(rawValue: 0x1234))
+        XCTAssertEqual(descriptor.bluetoothManufacturerDataBlob, Data([1, 2]))
+        XCTAssertEqual(descriptor.bluetoothManufacturerDataMask, Data([255, 240]))
+    }
+
+    func test_execute_rejectsMissingProductImage() async throws {
+        let session = FakeAccessorySession()
+        var result: Any?
+        let command = makeCommand(session: session, arguments: [
+            "filters": [[
+                "services": ["180A"],
+                "productData": ["name": "Sensor", "image": "images/missing.png"]
+            ]] as AnyObject
+        ]) { result = $0 }
+
+        await command.execute()
+
+        XCTAssertEqual((result as? FlutterError)?.code, "NotSupportedError")
+        XCTAssertFalse(session.activated)
+        XCTAssertFalse(session.pickerRequested)
     }
 
     func test_execute_preservesAlternativeServiceFilters() async {
         let session = FakeAccessorySession()
         let command = makeCommand(session: session, arguments: [
             "filters": [
-                ["services": ["0000180a-0000-1000-8000-00805f9b34fb"]],
-                ["services": ["180F"]]
+                [
+                    "services": ["0000180a-0000-1000-8000-00805f9b34fb"],
+                    "productData": ["name": "Sensor", "image": "images/tag.png"]
+                ],
+                [
+                    "services": ["180F"],
+                    "productData": ["name": "Battery", "image": "images/tag.png"]
+                ]
             ] as AnyObject,
             "optionalServices": ["1812"] as AnyObject
         ]) { _ in }
@@ -118,7 +148,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         let items = session.pickerItems
 
         XCTAssertEqual(items.count, 2)
-        XCTAssertEqual(items.first?.name, "Bluetooth Device")
+        XCTAssertEqual(items.first?.name, "Sensor")
         XCTAssertEqual(items.first?.descriptor.bluetoothServiceUUID, CBUUID(string: "180A"))
         XCTAssertEqual(items.last?.descriptor.bluetoothServiceUUID, CBUUID(string: "180F"))
     }
@@ -126,10 +156,33 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
     func test_execute_rejectsUnrepresentableFilters() async {
         let unsupportedFilters: [[[String: AnyObject]]] = [
             [],
-            [[:]],
-            [["services": ["180A", "180F"] as AnyObject]],
-            [["name": "Sensor" as AnyObject]],
-            [["namePrefix": "" as AnyObject]]
+            [["services": ["180A"] as AnyObject]],
+            [[
+                "services": ["180A", "180F"] as AnyObject,
+                "productData": ["name": "Sensor", "image": "images/tag.png"] as AnyObject
+            ]],
+            [[
+                "name": "Sensor" as AnyObject,
+                "productData": ["name": "Sensor", "image": "images/tag.png"] as AnyObject
+            ]],
+            [[
+                "namePrefix": "" as AnyObject,
+                "productData": ["name": "Sensor", "image": "images/tag.png"] as AnyObject
+            ]],
+            [[
+                "manufacturerData": [[
+                    "companyIdentifier": 1,
+                    "dataPrefix": [256]
+                ]] as AnyObject,
+                "productData": ["name": "Sensor", "image": "images/tag.png"] as AnyObject
+            ]],
+            [[
+                "manufacturerData": [
+                    ["companyIdentifier": 1],
+                    ["companyIdentifier": 2]
+                ] as AnyObject,
+                "productData": ["name": "Sensor", "image": "images/tag.png"] as AnyObject
+            ]]
         ]
         for filters in unsupportedFilters {
             let session = FakeAccessorySession()
@@ -146,7 +199,10 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
     func test_execute_leavesServiceDeclarationValidationToPlatform() async {
         let session = FakeAccessorySession()
         let command = makeCommand(session: session, arguments: [
-            "filters": [["services": ["1812"]]] as AnyObject
+            "filters": [[
+                "services": ["1812"],
+                "productData": ["name": "Sensor", "image": "images/tag.png"]
+            ]] as AnyObject
         ]) { _ in }
 
         await command.execute()
@@ -161,7 +217,10 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         let session = FakeAccessorySession()
         var result: Any?
         let command = makeCommand(session: session, arguments: [
-            "filters": [["namePrefix": "Sensor"]] as AnyObject
+            "filters": [[
+                "namePrefix": "Sensor",
+                "productData": ["name": "Sensor", "image": "images/tag.png"]
+            ]] as AnyObject
         ]) { result = $0 }
 
         await command.execute()
