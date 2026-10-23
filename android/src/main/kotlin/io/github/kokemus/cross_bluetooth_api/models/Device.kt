@@ -1,12 +1,15 @@
 package io.github.kokemus.cross_bluetooth_api.models
 
+import android.Manifest
 import android.bluetooth.BluetoothDevice
+import androidx.annotation.RequiresPermission
 
 data class Device(
     val id: String,
     val name: String?
 ) {
     companion object {
+        @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
         fun fromBluetoothDevice(device: BluetoothDevice): Device {
             return Device(device.address, device.name)
         }

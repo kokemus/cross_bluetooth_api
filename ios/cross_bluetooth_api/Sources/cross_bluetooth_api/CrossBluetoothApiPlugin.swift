@@ -33,24 +33,33 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
     }
 
     private var eventSink: FlutterEventSink?
-    private var manager: BluetoothManager!
-
-    override init() {
-        super.init()
-        manager = BluetoothManagerImp(queue: .main)
+    private lazy var manager: BluetoothManager = {
+        let manager = BluetoothManagerImp(queue: .main)
         manager.addDelegate(self)
-    }
+        return manager
+    }()
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let method = CommandId(rawValue: call.method)
         let arguments = call.arguments as? [String: AnyObject]
         let command: Command? = switch method {
         case .requestDevice:
-            RequestDeviceCommand(
-                viewController: viewController,
-                arguments: arguments,
-                pendingResult: result
-            )
+            MainActor.assumeIsolated { () -> Command in
+                let options = RequestDeviceOptions.fromMap(arguments ?? [:])
+                     if #available(iOS 18.0, *),
+                         options.filters?.contains(where: { $0.productData != nil }) == true {
+                    return AccessoryRequestDeviceCommand(
+                        arguments: arguments,
+                        pendingResult: result
+                    )
+                }
+                return RequestDeviceCommand(
+                    manager: manager,
+                    viewController: viewController,
+                    arguments: arguments,
+                    pendingResult: result
+                )
+            }
         case .connect:
             ConnectCommand(
                 manager: manager,
@@ -111,6 +120,18 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
 
         if let command {
             Task {
+                let requiresManagerReady: Bool
+                if #available(iOS 18.0, *) {
+                    requiresManagerReady = !(command is AccessoryRequestDeviceCommand)
+                } else {
+                    requiresManagerReady = true
+                }
+                if requiresManagerReady {
+                    guard await manager.waitUntilReady() else {
+                        result(FlutterError.networkError())
+                        return
+                    }
+                }
                 await command.execute()
             }
         } else {

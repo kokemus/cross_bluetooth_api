@@ -5,7 +5,6 @@ import CoreBluetooth
 public class StopNotificationsCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
     private var deviceManager: DeviceManager?
-    private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
     private var targetCharacteristicUUID: CBUUID?
@@ -25,6 +24,10 @@ public class StopNotificationsCommand: BaseCommand, DeviceManagerDelegate {
         }
     }
 
+    override func removeDelegates() {
+        deviceManager?.removeDelegate(self)
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
@@ -35,8 +38,7 @@ public class StopNotificationsCommand: BaseCommand, DeviceManagerDelegate {
                 let characteristicUUIDString = arguments["characteristic"] as? String,
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(FlutterError.networkError())
-                continuation.resume()
+                complete(FlutterError.networkError())
                 return
             }
 
@@ -49,8 +51,7 @@ public class StopNotificationsCommand: BaseCommand, DeviceManagerDelegate {
                 serviceUUID: serviceUUID,
                 characteristicUUID: characteristicUUID
             ) else {
-                pendingResult(FlutterError.notFoundError())
-                continuation.resume()
+                complete(FlutterError.notFoundError())
                 return
             }
 
@@ -63,6 +64,7 @@ public class StopNotificationsCommand: BaseCommand, DeviceManagerDelegate {
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         guard
+            continuation != nil,
             peripheral.identifier.uuidString == targetDeviceId,
             characteristic.service?.uuid == targetServiceUUID,
             characteristic.uuid == targetCharacteristicUUID
@@ -70,20 +72,16 @@ public class StopNotificationsCommand: BaseCommand, DeviceManagerDelegate {
             return
         }
 
-        defer {
-            continuation?.resume()
-        }
-
         if error != nil {
-            pendingResult(FlutterError.networkError())
+            complete(FlutterError.networkError())
             return
         }
 
         if characteristic.isNotifying {
-            pendingResult(FlutterError.networkError())
+            complete(FlutterError.networkError())
             return
         }
 
-        pendingResult(true)
+        complete(true)
     }
 }

@@ -5,7 +5,6 @@ import CoreBluetooth
 public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
     private var deviceManager: DeviceManager?
-    private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
     private var targetCharacteristicUUID: CBUUID?
@@ -25,6 +24,10 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
         }
     }
 
+    override func removeDelegates() {
+        deviceManager?.removeDelegate(self)
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
@@ -35,8 +38,7 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
                 let characteristicUUIDString = arguments["characteristic"] as? String,
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(FlutterError.networkError())
-                continuation.resume()
+                complete(FlutterError.networkError())
                 return
             }
 
@@ -49,14 +51,12 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
                 serviceUUID: serviceUUID,
                 characteristicUUID: characteristicUUID
             ) else {
-                pendingResult(FlutterError.notFoundError())
-                continuation.resume()
+                complete(FlutterError.notFoundError())
                 return
             }
 
             guard characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) else {
-                pendingResult(FlutterError.notSupportedError())
-                continuation.resume()
+                complete(FlutterError.notSupportedError())
                 return
             }
 
@@ -69,6 +69,7 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         guard
+            continuation != nil,
             peripheral.identifier.uuidString == targetDeviceId,
             characteristic.service?.uuid == targetServiceUUID,
             characteristic.uuid == targetCharacteristicUUID
@@ -76,20 +77,16 @@ public class StartNotificationsCommand: BaseCommand, DeviceManagerDelegate {
             return
         }
 
-        defer {
-            continuation?.resume()
-        }
-
         if error != nil {
-            pendingResult(FlutterError.networkError())
+            complete(FlutterError.networkError())
             return
         }
 
         if !characteristic.isNotifying {
-            pendingResult(FlutterError.networkError())
+            complete(FlutterError.networkError())
             return
         }
 
-        pendingResult(true)
+        complete(true)
     }
 }

@@ -37,28 +37,31 @@ class RequestDeviceViewController: UIViewController {
         return view
     }()
 
-    private var manager: CBCentralManager!
+    private var manager: BluetoothManager!
     private var peripherals: [CBPeripheral] = []
 
     private var options: RequestDeviceOptions!
     private var delegate: RequestDeviceDelegate!
     private var isUserCancelled = true
 
-    convenience init(options: Dictionary<String, Any>, delegate: RequestDeviceDelegate) {
+    convenience init(manager: BluetoothManager, options: Dictionary<String, Any>, delegate: RequestDeviceDelegate) {
         self.init()
+        self.manager = manager
         self.options = RequestDeviceOptions.fromMap(options)
         self.delegate = delegate
-        manager = CBCentralManager(delegate: self, queue: .main)
     }
 
     override func viewDidLoad() {
         addViews()
         setupConstraints()
         NotificationCenter.default.addObserver(self, selector: #selector(willResignActive), name: UIApplication.willResignActiveNotification, object: nil)
+        manager.addDelegate(self)
+        updateState(manager.state)
     }
     
     override func viewDidDisappear(_ animated: Bool) {
         stop()
+        manager.removeDelegate(self)
         NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
         if isBeingDismissed && isUserCancelled {
             delegate?.requestDevice(self, didFailWithError: .userCancelled)
@@ -95,39 +98,14 @@ class RequestDeviceViewController: UIViewController {
     
     private func start() {
         if !manager.isScanning {
-            var serviceUUIDs: [CBUUID]? = nil
-            if options.filters != nil {
-                for filter in options.filters! {
-                    if filter.services != nil {
-                        serviceUUIDs = []
-                        for service in filter.services! {
-                            serviceUUIDs!.append(CBUUID(string: service))
-                        }
-                    }
-                    if filter.name != nil {
-                        // post filtering
-                    }
-                    if filter.namePrefix != nil {
-                        // post filtering
-                    }
-                }
-            }
-            if options.optionalServices != nil {
-                for _ in options.optionalServices! {
-                    // post filtering
-                }
-            }
-            if (options.acceptAllDevices) {
-                // nop
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + TimeInterval(60) ) { [self] in
-                stop()
+            DispatchQueue.main.asyncAfter(deadline: .now() + TimeInterval(60) ) { [weak self] in
+                guard let self, self.viewIfLoaded?.window != nil else { return }
+                self.stop()
             }
             peripherals.removeAll()
             tableView.reloadData()
             manager.scanForPeripherals(
-                withServices: serviceUUIDs,
+                withServices: options.scanServiceUUIDs,
                 options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]
             )
         }
@@ -135,7 +113,9 @@ class RequestDeviceViewController: UIViewController {
     }
     
     private func stop() {
-        manager.stopScan()
+        if manager.isScanning {
+            manager.stopScan()
+        }
         navItem.rightBarButtonItem = rescanItem
     }
 }
@@ -164,10 +144,14 @@ extension RequestDeviceViewController: UITableViewDelegate {
     }
 }
 
-extension RequestDeviceViewController: CBCentralManagerDelegate {
+extension RequestDeviceViewController: BluetoothManagerDelegete {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        switch(manager.state) {
-        case .resetting:
+        updateState(central.state)
+    }
+
+    private func updateState(_ state: CBManagerState) {
+        switch(state) {
+        case .unknown, .resetting:
             break
         case .unsupported:
             isUserCancelled = false
@@ -187,6 +171,7 @@ extension RequestDeviceViewController: CBCentralManagerDelegate {
     }
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
+        guard options.matches(name: peripheral.name, advertisementData: advertisementData) else { return }
         if !peripherals.contains(where: { $0.identifier == peripheral.identifier }) {
             peripherals.append(peripheral)
             tableView.reloadData()

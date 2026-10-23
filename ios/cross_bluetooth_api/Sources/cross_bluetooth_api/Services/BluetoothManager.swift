@@ -3,6 +3,12 @@ import CoreBluetooth
 protocol BluetoothManagerDelegete: AnyObject, CBCentralManagerDelegate {}
 
 protocol BluetoothManager {
+    var state: CBManagerState { get }
+    var isScanning: Bool { get }
+
+    func waitUntilReady() async -> Bool
+    func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?)
+    func stopScan()
     func connect(_ deviceId: String) -> Bool
     func disconnect(_ deviceId: String) -> Bool
     func addDelegate(_ delegate: BluetoothManagerDelegete)
@@ -21,6 +27,12 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
 
     private let delegates = NSHashTable<AnyObject>.weakObjects()
 
+    private static let readinessTimeout: UInt64 = 1_000_000_000
+    private static let readinessPollingInterval: UInt64 = 50_000_000
+
+    var state: CBManagerState { central.state }
+    var isScanning: Bool { central.isScanning }
+
     init(
         queue: DispatchQueue? = nil,
         options: [String: Any]? = nil
@@ -34,6 +46,26 @@ final class BluetoothManagerImp: NSObject, BluetoothManager {
         super.init()
 
         central.delegate = self
+    }
+
+    func waitUntilReady() async -> Bool {
+        let deadline = DispatchTime.now().uptimeNanoseconds + Self.readinessTimeout
+        while central.state != .poweredOn, DispatchTime.now().uptimeNanoseconds < deadline {
+            do {
+                try await Task.sleep(nanoseconds: Self.readinessPollingInterval)
+            } catch {
+                return false
+            }
+        }
+        return central.state == .poweredOn
+    }
+
+    func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?) {
+        central.scanForPeripherals(withServices: serviceUUIDs, options: options)
+    }
+
+    func stopScan() {
+        central.stopScan()
     }
 
     func connect(_ deviceId: String) -> Bool {

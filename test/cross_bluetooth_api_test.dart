@@ -20,6 +20,32 @@ void main() {
     binaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
+  test('requestDevice sends product data to the platform', () async {
+    binaryMessenger.setMockMethodCallHandler(channel, (methodCall) async {
+      expect(methodCall.arguments['filters'], [
+        {
+          'services': ['180A'],
+          'productData': {'name': 'Sensor', 'image': 'assets/sensor.png'},
+        },
+      ]);
+      return {'id': 'device-42', 'name': 'Sensor'};
+    });
+
+    await Bluetooth.requestDevice(
+      RequestDeviceOptions(
+        filters: [
+          Filter(
+            services: ['180A'],
+            productData: ProductData(
+              name: 'Sensor',
+              image: 'assets/sensor.png',
+            ),
+          ),
+        ],
+      ),
+    );
+  });
+
   test('requestDevice returns parsed device', () async {
     final device = await Bluetooth.requestDevice(
       RequestDeviceOptions(acceptAllDevices: true),
