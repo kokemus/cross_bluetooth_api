@@ -21,6 +21,16 @@
 		A11111151CF9000F007C117D /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A222222A1CF9000F007C117D /* XCTest.framework */; };
 		A11111161CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */; };
 		A11111171CF9000F007C117D /* RequestDeviceOptionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222C1CF9000F007C117D /* RequestDeviceOptionsTests.swift */; };
+		B10000000000000000000001 /* GetPrimaryServiceCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* GetPrimaryServiceCommandTests.swift */; };
+		B10000000000000000000002 /* GetCharacteristicCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* GetCharacteristicCommandTests.swift */; };
+		B10000000000000000000003 /* ReadValueCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* ReadValueCommandTests.swift */; };
+		B10000000000000000000004 /* WriteValueWithResponseCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000004 /* WriteValueWithResponseCommandTests.swift */; };
+		B10000000000000000000005 /* WriteValueWithoutResponseCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* WriteValueWithoutResponseCommandTests.swift */; };
+		B10000000000000000000006 /* StartNotificationsCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* StartNotificationsCommandTests.swift */; };
+		B10000000000000000000007 /* StopNotificationsCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* StopNotificationsCommandTests.swift */; };
+		B10000000000000000000008 /* GattFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* GattFixture.swift */; };
+		A11111191CF9000F007C117D /* DisconnectCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222E1CF9000F007C117D /* DisconnectCommandTests.swift */; };
+		A111111A1CF9000F007C117D /* RequestDeviceCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222F1CF9000F007C117D /* RequestDeviceCommandTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +81,16 @@
 		A222222A1CF9000F007C117D /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = System/Library/Frameworks/XCTest.framework; sourceTree = SDKROOT; };
 		A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessoryRequestDeviceCommandTests.swift; sourceTree = "<group>"; };
 		A222222C1CF9000F007C117D /* RequestDeviceOptionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestDeviceOptionsTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000001 /* GetPrimaryServiceCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetPrimaryServiceCommandTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* GetCharacteristicCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetCharacteristicCommandTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* ReadValueCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadValueCommandTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000004 /* WriteValueWithResponseCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteValueWithResponseCommandTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000005 /* WriteValueWithoutResponseCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WriteValueWithoutResponseCommandTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000006 /* StartNotificationsCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartNotificationsCommandTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000007 /* StopNotificationsCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopNotificationsCommandTests.swift; sourceTree = "<group>"; };
+		B20000000000000000000008 /* GattFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GattFixture.swift; sourceTree = "<group>"; };
+		A222222E1CF9000F007C117D /* DisconnectCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisconnectCommandTests.swift; sourceTree = "<group>"; };
+		A222222F1CF9000F007C117D /* RequestDeviceCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestDeviceCommandTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -164,6 +184,15 @@
 			isa = PBXGroup;
 			children = (
 				A22222211CF9000F007C117D /* ConnectCommandTests.swift */,
+				B20000000000000000000001 /* GetPrimaryServiceCommandTests.swift */,
+				B20000000000000000000002 /* GetCharacteristicCommandTests.swift */,
+				B20000000000000000000003 /* ReadValueCommandTests.swift */,
+				B20000000000000000000004 /* WriteValueWithResponseCommandTests.swift */,
+				B20000000000000000000005 /* WriteValueWithoutResponseCommandTests.swift */,
+				B20000000000000000000006 /* StartNotificationsCommandTests.swift */,
+				B20000000000000000000007 /* StopNotificationsCommandTests.swift */,
+				A222222E1CF9000F007C117D /* DisconnectCommandTests.swift */,
+				A222222F1CF9000F007C117D /* RequestDeviceCommandTests.swift */,
 				A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */,
 			);
 			path = Commands;
@@ -172,6 +201,7 @@
 		A22222271CF9000F007C117D /* Testing */ = {
 			isa = PBXGroup;
 			children = (
+				B20000000000000000000008 /* GattFixture.swift */,
 				A22222281CF9000F007C117D /* Fakes */,
 			);
 			path = Testing;
@@ -350,6 +380,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				A11111111CF9000F007C117D /* ConnectCommandTests.swift in Sources */,
+				B10000000000000000000001 /* GetPrimaryServiceCommandTests.swift in Sources */,
+				B10000000000000000000002 /* GetCharacteristicCommandTests.swift in Sources */,
+				B10000000000000000000003 /* ReadValueCommandTests.swift in Sources */,
+				B10000000000000000000004 /* WriteValueWithResponseCommandTests.swift in Sources */,
+				B10000000000000000000005 /* WriteValueWithoutResponseCommandTests.swift in Sources */,
+				B10000000000000000000006 /* StartNotificationsCommandTests.swift in Sources */,
+				B10000000000000000000007 /* StopNotificationsCommandTests.swift in Sources */,
+				B10000000000000000000008 /* GattFixture.swift in Sources */,
+				A11111191CF9000F007C117D /* DisconnectCommandTests.swift in Sources */,
+				A111111A1CF9000F007C117D /* RequestDeviceCommandTests.swift in Sources */,
 				A11111161CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift in Sources */,
 				A11111171CF9000F007C117D /* RequestDeviceOptionsTests.swift in Sources */,
 				A11111121CF9000F007C117D /* FakeBluetoothManager.swift in Sources */,

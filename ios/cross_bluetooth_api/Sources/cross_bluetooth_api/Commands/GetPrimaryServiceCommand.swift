@@ -5,7 +5,6 @@ import CoreBluetooth
 public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
     private var deviceManager: DeviceManager?
-    private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
 
@@ -24,6 +23,10 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
         }
     }
 
+    override func removeDelegates() {
+        deviceManager?.removeDelegate(self)
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
@@ -31,8 +34,7 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
             guard let deviceId = arguments["deviceId"] as? String,
                   let serviceUUIDString = arguments["serviceUUID"] as? String,
                   let deviceManager = manager.deviceManager(for: deviceId) else {
-                pendingResult(FlutterError.networkError())
-                continuation.resume()
+                complete(FlutterError.networkError())
                 return
             }
 
@@ -45,24 +47,21 @@ public class GetPrimaryServiceCommand: BaseCommand, DeviceManagerDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-        defer {
-            continuation?.resume()
-        }
+        guard continuation != nil, peripheral.identifier.uuidString == targetDeviceId else { return }
 
         if error != nil {
-            pendingResult(FlutterError.notFoundError())
+            complete(FlutterError.notFoundError())
             return
         }
 
         guard
-            peripheral.identifier.uuidString == targetDeviceId,
             let serviceUUID = targetServiceUUID,
             let service = deviceManager?.getService(serviceUUID)
         else {
-            pendingResult(FlutterError.notFoundError())
+            complete(FlutterError.notFoundError())
             return
         }
 
-        pendingResult(service.toMap())
+        complete(service.toMap())
     }
 }

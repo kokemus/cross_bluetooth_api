@@ -5,7 +5,7 @@ import CoreBluetooth
 public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
     private var deviceManager: DeviceManager?
-    private var continuation: CheckedContinuation<Void, Never>?
+    private var writtenValue: Data?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
     private var targetCharacteristicUUID: CBUUID?
@@ -25,6 +25,10 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
         }
     }
 
+    override func removeDelegates() {
+        deviceManager?.removeDelegate(self)
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
@@ -36,8 +40,7 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
                 let value = dataArgument("value"),
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(FlutterError.networkError())
-                continuation.resume()
+                complete(FlutterError.networkError())
                 return
             }
 
@@ -50,37 +53,33 @@ public class WriteValueWithResponseCommand: BaseCommand, DeviceManagerDelegate {
                 serviceUUID: serviceUUID,
                 characteristicUUID: characteristicUUID
             ) else {
-                pendingResult(FlutterError.notFoundError())
-                continuation.resume()
+                complete(FlutterError.notFoundError())
                 return
             }
 
             targetDeviceId = deviceId
             targetServiceUUID = serviceUUID
             targetCharacteristicUUID = characteristicUUID
+            writtenValue = value
             deviceManager.writeValue(value, for: characteristic, type: .withResponse)
         }
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        defer {
-            continuation?.resume()
-        }
-
-        if error != nil {
-            pendingResult(FlutterError.networkError())
-            return
-        }
-
         guard
+            continuation != nil,
             peripheral.identifier.uuidString == targetDeviceId,
             characteristic.service?.uuid == targetServiceUUID,
             characteristic.uuid == targetCharacteristicUUID
         else {
-            pendingResult(FlutterError.notFoundError())
             return
         }
 
-        pendingResult(characteristic.value)
+        if error != nil {
+            complete(FlutterError.networkError())
+            return
+        }
+
+        complete(writtenValue)
     }
 }

@@ -29,16 +29,16 @@ public class RequestDeviceCommand: BaseCommand, RequestDeviceDelegate {
 
     func requestDevice(_ requestDevice: RequestDeviceViewController, didRequest peripheral: CBPeripheral) {
         viewController.dismiss(animated: true, completion: nil)
-        pendingResult(Device.fromPeripheral(peripheral).toMap())
+        complete(Device.fromPeripheral(peripheral).toMap())
     }
 
     func requestDevice(_ requestDevice: RequestDeviceViewController, didFailWithError error: RequestDeviceError) {
         viewController.dismiss(animated: true, completion: nil)
         switch (error) {
         case .userCancelled:
-            pendingResult(FlutterError.userCancelledError())
+            complete(FlutterError.userCancelledError())
         default:
-            pendingResult(FlutterError.notFoundError())
+            complete(FlutterError.notFoundError())
         }
     }
 }

@@ -4,7 +4,6 @@ import CoreBluetooth
 
 public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
     private let manager: BluetoothManager
-    private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
 
     init(
@@ -14,11 +13,13 @@ public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
     ) {
         self.manager = manager
         super.init(id: .disconnect, arguments: arguments, pendingResult: pendingResult)
-
-        manager.addDelegate(self)
     }
 
     deinit {
+        manager.removeDelegate(self)
+    }
+
+    override func removeDelegates() {
         manager.removeDelegate(self)
     }
 
@@ -26,15 +27,14 @@ public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
             guard let deviceId = arguments["id"] as? String else {
-                pendingResult(FlutterError.networkError())
-                continuation.resume()
+                complete(FlutterError.networkError())
                 return
             }
 
             targetDeviceId = deviceId
+            manager.addDelegate(self)
             if !manager.disconnect(deviceId) {
-                pendingResult(FlutterError.networkError())
-                continuation.resume()
+                complete(FlutterError.networkError())
             }
         }
     }
@@ -42,15 +42,14 @@ public class DisconnectCommand: BaseCommand, BluetoothManagerDelegete {
     public func centralManagerDidUpdateState(_ central: CBCentralManager) {}
 
     public func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        guard peripheral.identifier.uuidString == targetDeviceId else {
+        guard continuation != nil, peripheral.identifier.uuidString == targetDeviceId else {
             return
         }
 
         if error != nil {
-            pendingResult(FlutterError.networkError())
+            complete(FlutterError.networkError())
         } else {
-            pendingResult(Device.fromPeripheral(peripheral).toMap())
+            complete(Device.fromPeripheral(peripheral).toMap())
         }
-        continuation?.resume()
     }
 }

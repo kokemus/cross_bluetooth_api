@@ -22,6 +22,8 @@ public class BaseCommand: NSObject, Command {
     let id: CommandId
     let arguments: [String: AnyObject]
     let pendingResult: FlutterResult
+    var continuation: CheckedContinuation<Void, Never>?
+    private var completed = false
     
     init(
         id: CommandId, 
@@ -43,4 +45,16 @@ public class BaseCommand: NSObject, Command {
         }
         return arguments[key] as? Data
     }
+
+    func complete(_ result: Any?) {
+        guard !completed else { return }
+        completed = true
+        let continuation = continuation
+        self.continuation = nil
+        removeDelegates()
+        pendingResult(result)
+        continuation?.resume()
+    }
+
+    func removeDelegates() {}
 }

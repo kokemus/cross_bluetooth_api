@@ -2,7 +2,7 @@ import Foundation
 import CoreBluetooth
 @testable import cross_bluetooth_api
 
-private final class FakePeripheralObject: NSObject {
+final class FakePeripheralObject: NSObject {
     @objc let identifier: NSUUID
     @objc let name: String?
 
@@ -10,12 +10,20 @@ private final class FakePeripheralObject: NSObject {
         self.identifier = identifier as NSUUID
         self.name = name
     }
+
+    var peripheral: CBPeripheral { unsafeBitCast(self, to: CBPeripheral.self) }
 }
 
 final class FakeBluetoothManager: BluetoothManager {
     var state: CBManagerState = .poweredOn
     var isScanning = false
     var connectReturnValue: Bool
+    var disconnectReturnValue = true
+    var devices: [String: DeviceManager] = [:]
+    var onOperation: (() -> Void)?
+    private(set) var scannedServiceUUIDs: [CBUUID]?
+    private(set) var scanOptions: [String: Any]?
+    private(set) var stopScanCount = 0
     var connectedDeviceIds: [String] = []
     var disconnectedDeviceIds: [String] = []
     var removedPeripheralCount = 0
@@ -25,7 +33,7 @@ final class FakeBluetoothManager: BluetoothManager {
     private var connectWasCalled = false
     private var connectContinuation: CheckedContinuation<Void, Never>?
 
-    init(connectReturnValue: Bool) {
+    init(connectReturnValue: Bool = true) {
         self.connectReturnValue = connectReturnValue
     }
 
@@ -33,10 +41,14 @@ final class FakeBluetoothManager: BluetoothManager {
 
     func scanForPeripherals(withServices serviceUUIDs: [CBUUID]?, options: [String: Any]?) {
         isScanning = true
+        scannedServiceUUIDs = serviceUUIDs
+        scanOptions = options
+        onOperation?()
     }
 
     func stopScan() {
         isScanning = false
+        stopScanCount += 1
     }
 
     func connect(_ deviceId: String) -> Bool {
@@ -47,6 +59,7 @@ final class FakeBluetoothManager: BluetoothManager {
         connectContinuation = nil
         connectLock.unlock()
         continuation?.resume()
+        onOperation?()
         return connectReturnValue
     }
 
@@ -65,7 +78,8 @@ final class FakeBluetoothManager: BluetoothManager {
 
     func disconnect(_ deviceId: String) -> Bool {
         disconnectedDeviceIds.append(deviceId)
-        return true
+        onOperation?()
+        return disconnectReturnValue
     }
 
     func addDelegate(_ delegate: BluetoothManagerDelegete) {
@@ -77,21 +91,28 @@ final class FakeBluetoothManager: BluetoothManager {
     }
 
     func deviceManager(for deviceId: String) -> DeviceManager? {
-        nil
+        devices[deviceId]
+    }
+
+    func hasDelegate(_ delegate: BluetoothManagerDelegete) -> Bool {
+        delegates.contains { $0 === delegate }
     }
 
     @discardableResult
     func addPeripheral(_ peripheral: CBPeripheral) -> DeviceManager {
-        FakeDeviceManager(deviceId: peripheral.identifier.uuidString)
+        let device = FakeDeviceManager(deviceId: peripheral.identifier.uuidString)
+        devices[device.deviceId] = device
+        return device
     }
 
     func removePeripheral(_ peripheral: CBPeripheral) {
         removedPeripheralCount += 1
+        devices.removeValue(forKey: peripheral.identifier.uuidString)
     }
 
-    func emitDidFailToConnect() {
+    func emitDidFailToConnect(identifier: UUID) {
         let central = unsafeBitCast(NSObject(), to: CBCentralManager.self)
-        let peripheral = unsafeBitCast(NSObject(), to: CBPeripheral.self)
+        let peripheral = FakePeripheralObject(identifier: identifier, name: nil).peripheral
         delegates.forEach {
             $0.centralManager?(central, didFailToConnect: peripheral, error: nil)
         }
@@ -100,9 +121,17 @@ final class FakeBluetoothManager: BluetoothManager {
     func emitDidConnect(identifier: UUID = UUID(), name: String? = nil) {
         let central = unsafeBitCast(NSObject(), to: CBCentralManager.self)
         let fakePeripheral = FakePeripheralObject(identifier: identifier, name: name)
-        let peripheral = unsafeBitCast(fakePeripheral, to: CBPeripheral.self)
+        let peripheral = fakePeripheral.peripheral
         delegates.forEach {
             $0.centralManager?(central, didConnect: peripheral)
+        }
+    }
+
+    func emitDidDisconnect(identifier: UUID, error: Error? = nil) {
+        let central = unsafeBitCast(NSObject(), to: CBCentralManager.self)
+        let peripheral = FakePeripheralObject(identifier: identifier, name: "Example Device").peripheral
+        delegates.forEach {
+            $0.centralManager?(central, didDisconnectPeripheral: peripheral, error: error)
         }
     }
 }

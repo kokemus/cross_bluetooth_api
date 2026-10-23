@@ -5,7 +5,6 @@ import CoreBluetooth
 public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
     private let manager: BluetoothManager
     private var deviceManager: DeviceManager?
-    private var continuation: CheckedContinuation<Void, Never>?
     private var targetDeviceId: String?
     private var targetServiceUUID: CBUUID?
     private var targetCharacteristicUUID: CBUUID?
@@ -25,6 +24,10 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
         }
     }
 
+    override func removeDelegates() {
+        deviceManager?.removeDelegate(self)
+    }
+
     override func execute() async {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
@@ -35,8 +38,7 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
                 let characteristicUUIDString = arguments["characteristic"] as? String,
                 let deviceManager = manager.deviceManager(for: deviceId)
             else {
-                pendingResult(FlutterError.networkError())
-                continuation.resume()
+                complete(FlutterError.networkError())
                 return
             }
 
@@ -49,8 +51,7 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
                 serviceUUID: serviceUUID,
                 characteristicUUID: characteristicUUID
             ) else {
-                pendingResult(FlutterError.notFoundError())
-                continuation.resume()
+                complete(FlutterError.notFoundError())
                 return
             }
 
@@ -62,24 +63,20 @@ public class ReadValueCommand: BaseCommand, DeviceManagerDelegate {
     }
 
     public func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        defer {
-            continuation?.resume()
-        }
-
-        if error != nil {
-            pendingResult(FlutterError.networkError())
-            return
-        }
-
         guard
+            continuation != nil,
             peripheral.identifier.uuidString == targetDeviceId,
             characteristic.service?.uuid == targetServiceUUID,
             characteristic.uuid == targetCharacteristicUUID
         else {
-            pendingResult(FlutterError.notFoundError())
             return
         }
 
-        pendingResult(characteristic.value)
+        if error != nil {
+            complete(FlutterError.networkError())
+            return
+        }
+
+        complete(characteristic.value)
     }
 }
