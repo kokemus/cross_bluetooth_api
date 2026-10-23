@@ -138,3 +138,21 @@ try {
 | writeValueWithoutResponse | x | x | x |
 | startNotifications | x | x | x |
 | stopNotifications | x | x | x |
+
+## Tests
+
+Run all Flutter, Android unit, and iOS simulator tests from the repository root:
+
+```sh
+./test_all.sh
+```
+
+Requires macOS, Xcode with an installed iOS simulator, Flutter (via FVM or on
+`PATH`), and the Android SDK and JDK. The script uses FVM when available and
+uses Android Studio's bundled JDK when `JAVA_HOME` is unset.
+
+By default, the first available iPhone or iPad simulator is used. To select one:
+
+```sh
+IOS_DESTINATION='platform=iOS Simulator,name=iPhone 17 Pro' ./test_all.sh
+```
