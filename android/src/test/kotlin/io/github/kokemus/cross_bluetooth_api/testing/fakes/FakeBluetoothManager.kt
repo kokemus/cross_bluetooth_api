@@ -11,6 +11,9 @@ class FakeBluetoothManager(
     private val listeners = linkedSetOf<BluetoothManagerListener>()
     val devices = linkedMapOf<String, DeviceManager>()
     val disconnectedIds = mutableListOf<String>()
+    val forgottenIds = mutableListOf<String>()
+    var forgetReturnValue = true
+    var forgetException: Exception? = null
 
     override fun addListener(delegate: BluetoothManagerListener) {
         listeners.add(delegate)
@@ -33,6 +36,12 @@ class FakeBluetoothManager(
     override fun disconnect(deviceId: String): Boolean {
         disconnectedIds.add(deviceId)
         return disconnectReturnValue
+    }
+
+    override fun forget(deviceId: String): Boolean {
+        forgetException?.let { throw it }
+        forgottenIds.add(deviceId)
+        return forgetReturnValue
     }
 
     @Suppress("unused") // Used by DisconnectCommandTest.

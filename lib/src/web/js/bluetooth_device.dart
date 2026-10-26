@@ -31,4 +31,9 @@ class BluetoothDevice {
   void addEventListener(String event, EventListener listener) {
     _object.callMethod('addEventListener'.toJS, event.toJS, listener.toJS);
   }
+
+  Future<void> forget() async {
+    final promise = _object.callMethod<JSPromise<JSAny?>>('forget'.toJS);
+    await promise.toDart;
+  }
 }

@@ -71,4 +71,48 @@ void main() {
       throwsA(isA<NotFoundError>()),
     );
   });
+
+  test('forget sends the device without changing connected state', () async {
+    final device = Device.fromJson({'id': 'device-42', 'name': 'Sensor'});
+    device.gatt.connected = true;
+    binaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'forget');
+      expect(call.arguments, {'id': 'device-42', 'name': 'Sensor'});
+      expect(device.gatt.connected, isTrue);
+      return null;
+    });
+
+    await device.forget();
+
+    expect(device.gatt.connected, isTrue);
+    expect(device.id, 'device-42');
+  });
+
+  test('forget propagates failure without changing connected state', () async {
+    final device = Device.fromJson({'id': 'device-42'});
+    device.gatt.connected = true;
+    binaryMessenger.setMockMethodCallHandler(channel, (_) async {
+      throw PlatformException(
+        code: 'NetworkError',
+        message: 'NetworkError: Unable to forget device.',
+      );
+    });
+
+    await expectLater(device.forget(), throwsA(isA<NetworkError>()));
+    expect(device.gatt.connected, isTrue);
+  });
+
+  test('forget may be called repeatedly', () async {
+    final device = Device.fromJson({'id': 'device-42'});
+    var calls = 0;
+    binaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'forget');
+      calls++;
+      return null;
+    });
+
+    await device.forget();
+    await device.forget();
+    expect(calls, 2);
+  });
 }

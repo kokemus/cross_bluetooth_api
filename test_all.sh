@@ -67,6 +67,9 @@ fi
 echo "==> Flutter plugin tests"
 run_logged "${flutter[@]}" test --reporter expanded
 
+echo "==> Flutter web tests (Chrome)"
+run_logged "${flutter[@]}" test --platform chrome test/web --reporter expanded
+
 cd "$root_dir/example"
 echo "==> Flutter example tests"
 run_logged "${flutter[@]}" test --reporter expanded

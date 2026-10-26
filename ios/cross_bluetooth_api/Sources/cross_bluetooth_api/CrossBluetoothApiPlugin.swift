@@ -72,6 +72,18 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
                 arguments: arguments,
                 pendingResult: result
             )
+        case .forget:
+            MainActor.assumeIsolated { () -> Command? in
+                if #available(iOS 18.0, *),
+                   (Bundle.main.object(forInfoDictionaryKey: "NSAccessorySetupKitSupports") as? [String])?
+                    .contains("Bluetooth") == true {
+                    return AccessoryForgetCommand(
+                        arguments: arguments,
+                        pendingResult: result
+                    )
+                }
+                return nil
+            }
         case .getPrimaryService:
             GetPrimaryServiceCommand(
                 manager: manager,
@@ -123,8 +135,9 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
                 let requiresManagerReady: Bool
                 if #available(iOS 18.0, *) {
                     requiresManagerReady = !(command is AccessoryRequestDeviceCommand)
+                        && method != .forget
                 } else {
-                    requiresManagerReady = true
+                    requiresManagerReady = method != .forget
                 }
                 if requiresManagerReady {
                     guard await manager.waitUntilReady() else {

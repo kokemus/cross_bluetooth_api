@@ -39,6 +39,8 @@ class CrossBluetoothApiWeb {
         return await connect(call.arguments.cast<String, dynamic>());
       case 'disconnect':
         return await disconnect(call.arguments.cast<String, dynamic>());
+      case 'forget':
+        return await forget(call.arguments.cast<String, dynamic>());
       case 'getPrimaryService':
         return await getPrimaryService(call.arguments.cast<String, dynamic>());
       case 'getCharacteristic':
@@ -87,6 +89,14 @@ class CrossBluetoothApiWeb {
   Future disconnect(Map<String, dynamic> arguments) async {
     final device = _getDevice(arguments['id']);
     device?.gatt?.disconnect();
+  }
+
+  Future<void> forget(Map<String, dynamic> arguments) async {
+    final id = arguments['id'];
+    final device = _getDevice(id);
+    await device?.forget();
+    _devices.removeWhere((device) => device.id == id);
+    _characteristicListeners.removeWhere((key, _) => key.startsWith('$id/'));
   }
 
   Future getPrimaryService(Map<String, dynamic> arguments) async {

@@ -31,6 +31,7 @@
 		B10000000000000000000008 /* GattFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* GattFixture.swift */; };
 		A11111191CF9000F007C117D /* DisconnectCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222E1CF9000F007C117D /* DisconnectCommandTests.swift */; };
 		A111111A1CF9000F007C117D /* RequestDeviceCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A222222F1CF9000F007C117D /* RequestDeviceCommandTests.swift */; };
+		C10000000000000000000001 /* ForgetCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000001 /* ForgetCommandTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -91,6 +92,7 @@
 		B20000000000000000000008 /* GattFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GattFixture.swift; sourceTree = "<group>"; };
 		A222222E1CF9000F007C117D /* DisconnectCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisconnectCommandTests.swift; sourceTree = "<group>"; };
 		A222222F1CF9000F007C117D /* RequestDeviceCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestDeviceCommandTests.swift; sourceTree = "<group>"; };
+		C20000000000000000000001 /* ForgetCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgetCommandTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,6 +195,7 @@
 				B20000000000000000000007 /* StopNotificationsCommandTests.swift */,
 				A222222E1CF9000F007C117D /* DisconnectCommandTests.swift */,
 				A222222F1CF9000F007C117D /* RequestDeviceCommandTests.swift */,
+				C20000000000000000000001 /* ForgetCommandTests.swift */,
 				A222222B1CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift */,
 			);
 			path = Commands;
@@ -390,6 +393,7 @@
 				B10000000000000000000008 /* GattFixture.swift in Sources */,
 				A11111191CF9000F007C117D /* DisconnectCommandTests.swift in Sources */,
 				A111111A1CF9000F007C117D /* RequestDeviceCommandTests.swift in Sources */,
+				C10000000000000000000001 /* ForgetCommandTests.swift in Sources */,
 				A11111161CF9000F007C117D /* AccessoryRequestDeviceCommandTests.swift in Sources */,
 				A11111171CF9000F007C117D /* RequestDeviceOptionsTests.swift in Sources */,
 				A11111121CF9000F007C117D /* FakeBluetoothManager.swift in Sources */,

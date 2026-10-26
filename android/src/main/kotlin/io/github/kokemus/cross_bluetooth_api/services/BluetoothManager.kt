@@ -1,6 +1,7 @@
 package io.github.kokemus.cross_bluetooth_api.services
 
 import android.Manifest
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGatt.GATT_SUCCESS
 import android.bluetooth.BluetoothGattCallback
@@ -30,6 +31,9 @@ interface BluetoothManager {
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun disconnect(deviceId: String): Boolean
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun forget(deviceId: String): Boolean
 }
 
 class BluetoothManagerImp(private val context: Context) : BluetoothManager {
@@ -73,6 +77,15 @@ class BluetoothManagerImp(private val context: Context) : BluetoothManager {
         val manager = deviceManager(deviceId) ?: return false
         manager.disconnect()
         return true
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun forget(deviceId: String): Boolean {
+        val device = manager.adapter.getRemoteDevice(deviceId)
+        if (device.bondState == BluetoothDevice.BOND_NONE) {
+            return true
+        }
+        return BluetoothDevice::class.java.getMethod("removeBond").invoke(device) as Boolean
     }
 
     private fun addGatt(gatt: BluetoothGatt): DeviceManager {

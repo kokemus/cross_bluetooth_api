@@ -20,6 +20,10 @@ class Device extends Base {
     gatt = RemoteGATTServer(this);
   }
 
+  Future<void> forget() async {
+    await invokeMethod<void>('forget', toJson());
+  }
+
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['id'] = id;

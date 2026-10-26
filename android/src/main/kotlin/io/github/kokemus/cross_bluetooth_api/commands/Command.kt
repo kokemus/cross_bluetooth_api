@@ -4,6 +4,7 @@ enum class CommandId(val method: String) {
     REQUEST_DEVICE("requestDevice"),
     CONNECT("connect"),
     DISCONNECT("disconnect"),
+    FORGET("forget"),
     GET_PRIMARY_SERVICE("getPrimaryService"),
     GET_CHARACTERISTIC("getCharacteristic"),
     READ_VALUE("readValue"),

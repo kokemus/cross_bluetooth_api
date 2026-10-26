@@ -5,6 +5,7 @@ enum CommandId: String, Codable {
     case requestDevice
     case connect
     case disconnect
+    case forget
     case getPrimaryService
     case getCharacteristic
     case readValue
