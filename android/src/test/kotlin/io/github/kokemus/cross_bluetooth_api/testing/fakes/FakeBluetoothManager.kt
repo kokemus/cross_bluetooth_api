@@ -3,6 +3,7 @@ package io.github.kokemus.cross_bluetooth_api.testing.fakes
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManager
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManagerListener
 import io.github.kokemus.cross_bluetooth_api.services.DeviceManager
+import io.github.kokemus.cross_bluetooth_api.models.Device
 
 class FakeBluetoothManager(
     private val connectReturnValue: Boolean = true,
@@ -14,6 +15,13 @@ class FakeBluetoothManager(
     val forgottenIds = mutableListOf<String>()
     var forgetReturnValue = true
     var forgetException: Exception? = null
+    var bondedDevices: List<Device> = emptyList()
+    var getDevicesException: Exception? = null
+
+    override fun getDevices(): List<Device> {
+        getDevicesException?.let { throw it }
+        return bondedDevices
+    }
 
     override fun addListener(delegate: BluetoothManagerListener) {
         listeners.add(delegate)

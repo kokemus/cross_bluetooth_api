@@ -88,6 +88,7 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     val arguments = call.arguments as? Map<String, Any> ?: emptyMap()
 
     val command = when (CommandId.fromMethod(call.method)) {
+      CommandId.GET_DEVICES -> GetDevicesCommand(bluetoothManager, arguments, result)
       CommandId.REQUEST_DEVICE -> RequestDeviceCommand(requestDeviceLauncher, arguments, result)
       CommandId.CONNECT -> ConnectCommand(bluetoothManager, arguments, result)
       CommandId.DISCONNECT -> DisconnectCommand(bluetoothManager, arguments, result)

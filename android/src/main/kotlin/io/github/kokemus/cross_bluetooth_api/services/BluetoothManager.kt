@@ -10,6 +10,7 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import androidx.annotation.RequiresPermission
+import io.github.kokemus.cross_bluetooth_api.models.Device
 
 interface BluetoothManagerListener {
     fun onConnected(deviceManager: DeviceManager) {}
@@ -18,6 +19,9 @@ interface BluetoothManagerListener {
 }
 
 interface BluetoothManager {
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun getDevices(): List<Device>
+
     fun addListener(delegate: BluetoothManagerListener)
     fun removeListener(delegate: BluetoothManagerListener)
     fun removeAllListeners()
@@ -42,6 +46,13 @@ class BluetoothManagerImp(private val context: Context) : BluetoothManager {
 
     private val deviceManagersById = mutableMapOf<String, DeviceManagerImp>()
     private val listeners = mutableSetOf<BluetoothManagerListener>()
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun getDevices(): List<Device> {
+        val adapter = manager.adapter
+        check(adapter.isEnabled) { "Bluetooth is turned off." }
+        return adapter.bondedDevices.map(Device::fromBluetoothDevice)
+    }
 
     override fun addListener(delegate: BluetoothManagerListener) {
         listeners.add(delegate)

@@ -1,6 +1,7 @@
 package io.github.kokemus.cross_bluetooth_api.commands
 
 enum class CommandId(val method: String) {
+    GET_DEVICES("getDevices"),
     REQUEST_DEVICE("requestDevice"),
     CONNECT("connect"),
     DISCONNECT("disconnect"),

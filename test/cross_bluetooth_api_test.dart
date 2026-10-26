@@ -20,6 +20,51 @@ void main() {
     binaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
+  test('getDevices sends no arguments and parses all devices', () async {
+    binaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'getDevices');
+      expect(call.arguments, isNull);
+      return [
+        {'id': 'device-42', 'name': 'Sensor'},
+        {'id': 'device-43', 'name': null},
+      ];
+    });
+
+    final devices = await Bluetooth.getDevices();
+
+    expect(devices.map((device) => device.id), ['device-42', 'device-43']);
+    expect(devices.map((device) => device.name), ['Sensor', null]);
+    expect(devices.first.gatt.device, same(devices.first));
+  });
+
+  test(
+    'getDevices returns an empty list when no devices are available',
+    () async {
+      binaryMessenger.setMockMethodCallHandler(channel, (_) async => []);
+      expect(await Bluetooth.getDevices(), isEmpty);
+    },
+  );
+
+  test('getDevices maps platform errors', () async {
+    for (final error in [
+      SecurityError(),
+      NotSupportedError(),
+      InvalidStateError(),
+      UnknownError('failed'),
+    ]) {
+      binaryMessenger.setMockMethodCallHandler(channel, (_) async {
+        throw PlatformException(
+          code: error.runtimeType.toString(),
+          message: error.toString(),
+        );
+      });
+      await expectLater(
+        Bluetooth.getDevices(),
+        throwsA(predicate((value) => value.runtimeType == error.runtimeType)),
+      );
+    }
+  });
+
   test('requestDevice sends product data to the platform', () async {
     binaryMessenger.setMockMethodCallHandler(channel, (methodCall) async {
       expect(methodCall.arguments['filters'], [

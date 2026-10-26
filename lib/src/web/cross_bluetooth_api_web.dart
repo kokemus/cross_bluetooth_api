@@ -33,6 +33,8 @@ class CrossBluetoothApiWeb {
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
+      case 'getDevices':
+        return await getDevices();
       case 'requestDevice':
         return await requestDevice(call.arguments.cast<String, dynamic>());
       case 'connect':
@@ -70,15 +72,31 @@ class CrossBluetoothApiWeb {
 
   final List<BluetoothDevice> _devices = [];
 
+  Future<List<Map<String, dynamic>>> getDevices() async {
+    final devices = await nativeBluetooth.getDevices().toDart;
+    return devices.toDart
+        .map((object) => _cacheDevice(object).toJson())
+        .toList();
+  }
+
   Future<Map<String, dynamic>> requestDevice(
     Map<String, dynamic> arguments,
   ) async {
     final options = RequestOptions.fromMap(arguments);
     final object = await nativeBluetooth.requestDevice(options.toJS()).toDart;
+    return _cacheDevice(object).toJson();
+  }
+
+  BluetoothDevice _cacheDevice(JSObject object) {
     final device = BluetoothDevice.fromObject(object);
+    for (final cached in _devices) {
+      if (cached.id == device.id) {
+        return cached;
+      }
+    }
     device.addEventListener('gattserverdisconnected', _onDisconnected);
     _devices.add(device);
-    return device.toJson();
+    return device;
   }
 
   Future connect(Map<String, dynamic> arguments) async {

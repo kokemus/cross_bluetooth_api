@@ -50,7 +50,10 @@ final device = await Bluetooth.requestDevice(
     ),
 );
 
-await device.forget();
+final devices = await Bluetooth.getDevices();
+for (final device in devices) {
+    await device.forget();
+}
 ```
 
 ### Example
@@ -89,7 +92,7 @@ try {
 | Bluetooth  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
 | getAvailability |   |   |   |
-| getDevices |   |   |   |
+| getDevices | x | x | x |
 | requestDevice | x | x | x |
 
 </br>
