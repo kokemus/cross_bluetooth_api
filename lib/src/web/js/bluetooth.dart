@@ -9,7 +9,7 @@ class NativeBluetooth {}
 
 extension NativeBluetoothInterop on NativeBluetooth {
   external JSAny? getAvailability();
-  external JSAny? getDevices();
+  external JSPromise<JSArray<JSObject>> getDevices();
   external JSPromise<JSObject> requestDevice(JSAny? options);
   external void addEventListener(String type, JSFunction listener);
   external void removeEventListener(String type, JSFunction listener);

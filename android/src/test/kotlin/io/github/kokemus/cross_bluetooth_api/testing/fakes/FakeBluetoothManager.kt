@@ -3,6 +3,7 @@ package io.github.kokemus.cross_bluetooth_api.testing.fakes
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManager
 import io.github.kokemus.cross_bluetooth_api.services.BluetoothManagerListener
 import io.github.kokemus.cross_bluetooth_api.services.DeviceManager
+import io.github.kokemus.cross_bluetooth_api.models.Device
 
 class FakeBluetoothManager(
     private val connectReturnValue: Boolean = true,
@@ -11,6 +12,16 @@ class FakeBluetoothManager(
     private val listeners = linkedSetOf<BluetoothManagerListener>()
     val devices = linkedMapOf<String, DeviceManager>()
     val disconnectedIds = mutableListOf<String>()
+    val forgottenIds = mutableListOf<String>()
+    var forgetReturnValue = true
+    var forgetException: Exception? = null
+    var bondedDevices: List<Device> = emptyList()
+    var getDevicesException: Exception? = null
+
+    override fun getDevices(): List<Device> {
+        getDevicesException?.let { throw it }
+        return bondedDevices
+    }
 
     override fun addListener(delegate: BluetoothManagerListener) {
         listeners.add(delegate)
@@ -33,6 +44,12 @@ class FakeBluetoothManager(
     override fun disconnect(deviceId: String): Boolean {
         disconnectedIds.add(deviceId)
         return disconnectReturnValue
+    }
+
+    override fun forget(deviceId: String): Boolean {
+        forgetException?.let { throw it }
+        forgottenIds.add(deviceId)
+        return forgetReturnValue
     }
 
     @Suppress("unused") // Used by DisconnectCommandTest.

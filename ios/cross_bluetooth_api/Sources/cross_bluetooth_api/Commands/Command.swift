@@ -2,9 +2,11 @@ import Foundation
 import Flutter
 
 enum CommandId: String, Codable {
+    case getDevices
     case requestDevice
     case connect
     case disconnect
+    case forget
     case getPrimaryService
     case getCharacteristic
     case readValue

@@ -15,6 +15,19 @@ export 'src/models/remote_gatt_service.dart';
 export 'src/models/remote_gatt_characteristic.dart';
 
 class Bluetooth {
+  static Future<List<Device>> getDevices() async {
+    try {
+      final devices = await methodChannel.invokeMethod<List<dynamic>>(
+        'getDevices',
+      );
+      return devices!
+          .map((map) => Device.fromJson((map as Map).cast<String, dynamic>()))
+          .toList();
+    } on PlatformException catch (e) {
+      throw UnknownError.fromException(e);
+    }
+  }
+
   static Future<Device> requestDevice(RequestDeviceOptions options) async {
     try {
       final map = await methodChannel.invokeMethod(

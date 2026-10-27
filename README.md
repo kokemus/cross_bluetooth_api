@@ -49,6 +49,11 @@ final device = await Bluetooth.requestDevice(
         ]
     ),
 );
+
+final devices = await Bluetooth.getDevices();
+for (final device in devices) {
+    await device.forget();
+}
 ```
 
 ### Example
@@ -87,7 +92,7 @@ try {
 | Bluetooth  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
 | getAvailability |   |   |   |
-| getDevices |   |   |   |
+| getDevices | x | x | x |
 | requestDevice | x | x | x |
 
 </br>
@@ -99,7 +104,7 @@ try {
 | id | x | x | x |
 | name | x | x | x |
 | watchAdvertisements |   |   |   |
-| forget |   |   |   |
+| forget | x | x | x |
 
 </br>
 
@@ -141,14 +146,14 @@ try {
 
 ## Tests
 
-Run all Flutter, Android unit, and iOS simulator tests from the repository root:
+Run all Flutter, Chrome web, Android unit, and iOS simulator tests from the repository root:
 
 ```sh
 ./test_all.sh
 ```
 
 Requires macOS, Xcode with an installed iOS simulator, Flutter (via FVM or on
-`PATH`), and the Android SDK and JDK. The script uses FVM when available and
+`PATH`), Chrome, and the Android SDK and JDK. The script uses FVM when available and
 uses Android Studio's bundled JDK when `JAVA_HOME` is unset.
 
 By default, the first available iPhone or iPad simulator is used. To select one:

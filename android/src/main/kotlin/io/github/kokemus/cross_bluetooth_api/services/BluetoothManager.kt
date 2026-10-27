@@ -1,6 +1,7 @@
 package io.github.kokemus.cross_bluetooth_api.services
 
 import android.Manifest
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGatt.GATT_SUCCESS
 import android.bluetooth.BluetoothGattCallback
@@ -9,6 +10,7 @@ import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import androidx.annotation.RequiresPermission
+import io.github.kokemus.cross_bluetooth_api.models.Device
 
 interface BluetoothManagerListener {
     fun onConnected(deviceManager: DeviceManager) {}
@@ -17,6 +19,9 @@ interface BluetoothManagerListener {
 }
 
 interface BluetoothManager {
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun getDevices(): List<Device>
+
     fun addListener(delegate: BluetoothManagerListener)
     fun removeListener(delegate: BluetoothManagerListener)
     fun removeAllListeners()
@@ -30,6 +35,9 @@ interface BluetoothManager {
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun disconnect(deviceId: String): Boolean
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun forget(deviceId: String): Boolean
 }
 
 class BluetoothManagerImp(private val context: Context) : BluetoothManager {
@@ -38,6 +46,13 @@ class BluetoothManagerImp(private val context: Context) : BluetoothManager {
 
     private val deviceManagersById = mutableMapOf<String, DeviceManagerImp>()
     private val listeners = mutableSetOf<BluetoothManagerListener>()
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun getDevices(): List<Device> {
+        val adapter = manager.adapter
+        check(adapter.isEnabled) { "Bluetooth is turned off." }
+        return adapter.bondedDevices.map(Device::fromBluetoothDevice)
+    }
 
     override fun addListener(delegate: BluetoothManagerListener) {
         listeners.add(delegate)
@@ -73,6 +88,15 @@ class BluetoothManagerImp(private val context: Context) : BluetoothManager {
         val manager = deviceManager(deviceId) ?: return false
         manager.disconnect()
         return true
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    override fun forget(deviceId: String): Boolean {
+        val device = manager.adapter.getRemoteDevice(deviceId)
+        if (device.bondState == BluetoothDevice.BOND_NONE) {
+            return true
+        }
+        return BluetoothDevice::class.java.getMethod("removeBond").invoke(device) as Boolean
     }
 
     private fun addGatt(gatt: BluetoothGatt): DeviceManager {
