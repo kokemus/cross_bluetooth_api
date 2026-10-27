@@ -180,7 +180,7 @@ class RequestDeviceActivity: SheetActivity() {
         val toolbar = Toolbar(this)
         val actionBarAttributes = theme.obtainStyledAttributes(
             null,
-            intArrayOf(android.R.attr.background),
+            intArrayOf(android.R.attr.colorBackgroundFloating),
             android.R.attr.actionBarStyle,
             0
         )

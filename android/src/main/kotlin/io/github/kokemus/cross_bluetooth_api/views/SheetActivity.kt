@@ -8,7 +8,10 @@ import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
@@ -23,6 +26,12 @@ abstract class SheetActivity : ComponentActivity() {
 
     private var sheet: ViewGroup? = null
     private var entranceListener: View.OnLayoutChangeListener? = null
+    private var touchStartX = 0f
+    private var touchStartY = 0f
+    private var canDrag = false
+    private var isDragging = false
+    private var ignoreTouchUntilUp = false
+    private var velocityTracker: VelocityTracker? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val nightMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -36,7 +45,6 @@ abstract class SheetActivity : ComponentActivity() {
         window.decorView.setPadding(0, 0, 0, 0)
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         window.attributes = window.attributes.apply {
-            dimAmount = 0.4f
             windowAnimations = 0
             gravity = Gravity.BOTTOM
         }
@@ -101,6 +109,101 @@ abstract class SheetActivity : ComponentActivity() {
         if (sheet != null) updateSheetSize()
     }
 
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        val decor = sheet ?: return super.dispatchTouchEvent(event)
+        if (isDismissing) return true
+        if (ignoreTouchUntilUp && event.actionMasked != MotionEvent.ACTION_DOWN) {
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                ignoreTouchUntilUp = false
+            }
+            return true
+        }
+        val configuration = ViewConfiguration.get(this)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                resetDrag()
+                ignoreTouchUntilUp = false
+                touchStartX = event.rawX
+                touchStartY = event.rawY
+                canDrag = !canScrollUpAt(decor, event.rawX, event.rawY)
+                velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                velocityTracker?.addMovement(event)
+                val distanceX = event.rawX - touchStartX
+                val distanceY = event.rawY - touchStartY
+                if (canDrag && !isDragging &&
+                    maxOf(kotlin.math.abs(distanceX), kotlin.math.abs(distanceY)) > configuration.scaledTouchSlop
+                ) {
+                    canDrag = distanceY > kotlin.math.abs(distanceX)
+                    if (canDrag) {
+                        isDragging = true
+                        decor.animate().cancel()
+                        val cancel = MotionEvent.obtain(event)
+                        cancel.action = MotionEvent.ACTION_CANCEL
+                        super.dispatchTouchEvent(cancel)
+                        cancel.recycle()
+                    }
+                }
+                if (isDragging) {
+                    decor.translationY = (distanceY - configuration.scaledTouchSlop).coerceAtLeast(0f)
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
+                val wasDragging = isDragging
+                if (wasDragging) {
+                    velocityTracker?.addMovement(event)
+                    velocityTracker?.computeCurrentVelocity(1000, configuration.scaledMaximumFlingVelocity.toFloat())
+                    val velocity = velocityTracker?.yVelocity ?: 0f
+                    val dismiss = event.actionMasked == MotionEvent.ACTION_UP &&
+                        (decor.translationY >= decor.height * 0.25f ||
+                            (decor.translationY > configuration.scaledTouchSlop &&
+                                velocity > maxOf(configuration.scaledMinimumFlingVelocity.toFloat(),
+                                    1000 * resources.displayMetrics.density)))
+                    if (dismiss) {
+                        finish()
+                    } else if (ValueAnimator.areAnimatorsEnabled()) {
+                        decor.animate().translationY(0f).setDuration(200)
+                            .setInterpolator(DecelerateInterpolator()).start()
+                    } else {
+                        decor.translationY = 0f
+                    }
+                }
+                resetDrag()
+                if (wasDragging) {
+                    ignoreTouchUntilUp = event.actionMasked == MotionEvent.ACTION_POINTER_DOWN
+                    return true
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event)
+    }
+
+    private fun canScrollUpAt(view: View, screenX: Float, screenY: Float): Boolean {
+        val location = IntArray(2)
+        view.getLocationOnScreen(location)
+        if (screenX < location[0] || screenX >= location[0] + view.width ||
+            screenY < location[1] || screenY >= location[1] + view.height
+        ) return false
+        if (view.canScrollVertically(-1)) return true
+        if (view is ViewGroup) {
+            for (index in view.childCount - 1 downTo 0) {
+                if (view.getChildAt(index).visibility == View.VISIBLE &&
+                    canScrollUpAt(view.getChildAt(index), screenX, screenY)
+                ) return true
+            }
+        }
+        return false
+    }
+
+    private fun resetDrag() {
+        velocityTracker?.recycle()
+        velocityTracker = null
+        canDrag = false
+        isDragging = false
+    }
+
     /** Invoked once, before any exit animation, including exits before content is installed. */
     protected open fun onDismissStarted() {}
 
@@ -129,6 +232,7 @@ abstract class SheetActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        resetDrag()
         sheet?.let { decor ->
             entranceListener?.let { decor.removeOnLayoutChangeListener(it) }
             decor.animate().withEndAction(null).cancel()
