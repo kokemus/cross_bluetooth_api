@@ -32,6 +32,11 @@ class Event {
 }
 
 class Base {
+  static final Stream<Event> _events = eventChannel
+      .receiveBroadcastStream()
+      .cast<Map<dynamic, dynamic>>()
+      .map(Event.fromJson);
+
   Future<T?> invokeMethod<T>(String method, [dynamic arguments]) async {
     try {
       return await methodChannel.invokeMethod(method, arguments);
@@ -40,9 +45,5 @@ class Base {
     }
   }
 
-  Stream<Event> get events {
-    return eventChannel.receiveBroadcastStream().cast().map(
-      (event) => Event.fromJson(event),
-    );
-  }
+  Stream<Event> get events => _events;
 }
