@@ -8,6 +8,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Looper
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.ListView
 import android.widget.PopupMenu
@@ -62,7 +63,9 @@ class RequestDeviceActivityTest {
         assertEquals(Gravity.BOTTOM, activity.window.attributes.gravity)
         assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, activity.window.attributes.width)
         assertTrue(activity.window.attributes.height > 0)
-        assertEquals(0.4f, activity.window.attributes.dimAmount, 0.001f)
+        val dimAmount = TypedValue()
+        assertTrue(activity.theme.resolveAttribute(android.R.attr.backgroundDimAmount, dimAmount, true))
+        assertEquals(dimAmount.float, activity.window.attributes.dimAmount, 0.001f)
         assertTrue(activity.window.decorView.background is GradientDrawable)
         assertTrue(activity.window.decorView.clipToOutline)
         val content = activity.findViewById<ViewGroup>(android.R.id.content)
@@ -78,6 +81,35 @@ class RequestDeviceActivityTest {
         assertEquals(1, menu.size())
         assertEquals("Re-scan", menu.getItem(0).title)
         assertTrue(menu.getItem(0).actionView is ProgressBar)
+    }
+
+    @Test
+    fun swipeDown_cancelsAndStopsScanningImmediately() = withChooser { activity, adapter ->
+        val scanner = shadowOf(adapter.bluetoothLeScanner)
+        assertFalse(scanner.scanCallbacks.isEmpty())
+        activity.window.decorView.apply {
+            layout(0, 0, 600, 1000)
+            animate().cancel()
+            translationY = 0f
+        }
+        for ((action, positionY, elapsed) in listOf(
+            Triple(MotionEvent.ACTION_DOWN, 20f, 0L),
+            Triple(MotionEvent.ACTION_MOVE, 420f, 500L),
+            Triple(MotionEvent.ACTION_UP, 420f, 1000L)
+        )) {
+            val event = MotionEvent.obtain(0, elapsed, action, 100f, positionY, 0)
+            try {
+                activity.dispatchTouchEvent(event)
+            } finally {
+                event.recycle()
+            }
+        }
+        assertTrue(scanner.scanCallbacks.isEmpty())
+        val content = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0) as ViewGroup
+        assertFalse((content.getChildAt(1) as ListView).isEnabled)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(1))
+        assertEquals(Activity.RESULT_CANCELED, shadowOf(activity).resultCode)
+        assertTrue(activity.isFinishing)
     }
 
     @Test
