@@ -42,7 +42,6 @@ class _ScanViewState extends State<ScanView> {
   Widget build(BuildContext context) {
     return Column(
       spacing: 16,
-      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
@@ -178,10 +177,13 @@ class _ScanViewState extends State<ScanView> {
                   },
                   child: !_loading.value
                       ? const Text('Scan')
-                      : const SizedBox(
+                      : SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                         ),
                 ),
               ],

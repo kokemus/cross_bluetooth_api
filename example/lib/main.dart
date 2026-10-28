@@ -1,4 +1,5 @@
 import 'package:cross_bluetooth_api_example/device_view.dart';
+import 'package:cross_bluetooth_api_example/devices_view.dart';
 import 'package:cross_bluetooth_api_example/scan_view.dart';
 import 'package:flutter/material.dart';
 
@@ -37,9 +38,22 @@ class MyApp extends StatelessWidget {
                     valueListenable: _device,
                     builder: (context, device, child) {
                       return device == null
-                          ? ScanView(
-                              selectedDevice: _device,
-                              services: _services,
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              spacing: 24,
+                              children: [
+                                ScanView(
+                                  selectedDevice: _device,
+                                  services: _services,
+                                ),
+                                Text(
+                                  'Available devices',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                DevicesView(selectedDevice: _device),
+                              ],
                             )
                           : DeviceView(device: _device, services: _services);
                     },

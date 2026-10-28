@@ -39,9 +39,8 @@ class _DeviceViewState extends State<DeviceView> {
       mainAxisSize: MainAxisSize.min,
       spacing: 16,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          spacing: 16,
+        Column(
+          spacing: 8,
           children: [
             Text(
               device?.name ?? '',
@@ -59,15 +58,48 @@ class _DeviceViewState extends State<DeviceView> {
                 return const SizedBox.shrink();
               },
             ),
-            OutlinedButton(
-              onPressed: () => _disconnect(),
-              child: !_loading.value
-                  ? const Text('Disconnect')
-                  : const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+            ValueListenableBuilder(
+              valueListenable: _loading,
+              builder: (context, value, child) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  spacing: 16,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => _forget(),
+                      child: !_loading.value
+                          ? const Text('Forget')
+                          : const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                     ),
+                    StreamBuilder(
+                      stream: widget._device.value?.gattserverdisconnected,
+                      builder: (context, asyncSnapshot) {
+                        return OutlinedButton(
+                          onPressed: () =>
+                              widget._device.value?.gatt.connected == true
+                              ? _disconnect()
+                              : _connect(),
+                          child: !_loading.value
+                              ? (widget._device.value?.gatt.connected == true
+                                    ? const Text('Disconnect')
+                                    : const Text('Connect'))
+                              : const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -214,12 +246,56 @@ class _DeviceViewState extends State<DeviceView> {
     );
   }
 
+  Future<void> _connect() async {
+    try {
+      _loading.value = true;
+      final device = widget._device.value;
+      _state.value = '';
+      await device?.gatt.connect();
+      _state.value = '';
+      _loading.value = false;
+    } on UnknownError catch (e) {
+      _loading.value = false;
+      _state.value = e.message ?? 'Unknown error';
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message ?? 'Unknown error'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
   Future<void> _disconnect() async {
     try {
       _loading.value = true;
       final device = widget._device.value;
       _state.value = '';
       await device?.gatt.disconnect();
+      _state.value = '';
+      widget._device.value = null;
+      widget._services.value = [];
+      _loading.value = false;
+    } on UnknownError catch (e) {
+      _loading.value = false;
+      _state.value = e.message ?? 'Unknown error';
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message ?? 'Unknown error'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  Future<void> _forget() async {
+    try {
+      _loading.value = true;
+      final device = widget._device.value;
+      _state.value = '';
+      await device?.forget();
       _state.value = '';
       widget._device.value = null;
       widget._services.value = [];

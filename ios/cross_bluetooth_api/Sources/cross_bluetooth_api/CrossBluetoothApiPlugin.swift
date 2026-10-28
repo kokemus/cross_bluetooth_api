@@ -157,7 +157,11 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
                 await command.execute()
             }
         } else {
-            result(FlutterMethodNotImplemented)
+            if (method != nil) {
+                result(FlutterError.notSupportedError())
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
         }
     }
 }
