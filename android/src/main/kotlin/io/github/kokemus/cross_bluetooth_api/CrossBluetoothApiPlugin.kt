@@ -2,6 +2,9 @@ package io.github.kokemus.cross_bluetooth_api
 
 import android.Manifest
 import android.bluetooth.BluetoothGattCharacteristic
+import android.companion.CompanionDeviceManager
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.RequiresPermission
@@ -33,6 +36,7 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
   private lateinit var channel : MethodChannel
   private lateinit var bluetoothManager: BluetoothManager
   private val requestDeviceLauncher = RequestDeviceLauncher()
+  private var companionDeviceManager: CompanionDeviceManager? = null
   private val commandScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -40,10 +44,24 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     channel.setMethodCallHandler(this)
 
     bluetoothManager = BluetoothManagerImp(flutterPluginBinding.applicationContext)
+    val context = flutterPluginBinding.applicationContext
+    companionDeviceManager = if (
+      isCompanionSetupEnabled(context)
+    ) context.getSystemService(CompanionDeviceManager::class.java) else null
     bluetoothManager.addListener(this)
 
     val eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "cross_bluetooth_api/events")
     eventChannel.setStreamHandler(streamHandler)
+  }
+
+  @Suppress("DEPRECATION")
+  internal fun isCompanionSetupEnabled(context: Context): Boolean {
+    val packageManager = context.packageManager
+    if (!packageManager.hasSystemFeature(PackageManager.FEATURE_COMPANION_DEVICE_SETUP)) return false
+    val packageInfo = packageManager.getPackageInfo(context.packageName, PackageManager.GET_CONFIGURATIONS)
+    return packageInfo.reqFeatures?.any {
+      it.name == PackageManager.FEATURE_COMPANION_DEVICE_SETUP
+    } == true
   }
 
   internal var eventSink: EventChannel.EventSink? = null
@@ -62,6 +80,8 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     bluetoothManager.removeListener(this)
     bluetoothManager.removeAllListeners()
+    requestDeviceLauncher.detach()
+    companionDeviceManager = null
     commandScope.cancel()
     channel.setMethodCallHandler(null)
   }
@@ -79,20 +99,27 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
   }
 
   override fun onDetachedFromActivityForConfigChanges() {
-    requestDeviceLauncher.detach()
+    requestDeviceLauncher.detach(forConfigChanges = true)
   }
 
   @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
   override fun onMethodCall(call: MethodCall, result: Result) {
     @Suppress("UNCHECKED_CAST")
     val arguments = call.arguments as? Map<String, Any> ?: emptyMap()
+    val companionManager = companionDeviceManager
 
     val command = when (CommandId.fromMethod(call.method)) {
-      CommandId.GET_DEVICES -> GetDevicesCommand(bluetoothManager, arguments, result)
-      CommandId.REQUEST_DEVICE -> RequestDeviceCommand(requestDeviceLauncher, arguments, result)
+      CommandId.GET_DEVICES -> if (companionManager != null) {
+        CompanionGetDevicesCommand(companionManager, arguments, result)
+      } else GetDevicesCommand(bluetoothManager, arguments, result)
+      CommandId.REQUEST_DEVICE -> if (companionManager != null) {
+        CompanionRequestDeviceCommand(companionManager, requestDeviceLauncher, arguments, result)
+      } else RequestDeviceCommand(requestDeviceLauncher, arguments, result)
       CommandId.CONNECT -> ConnectCommand(bluetoothManager, arguments, result)
       CommandId.DISCONNECT -> DisconnectCommand(bluetoothManager, arguments, result)
-      CommandId.FORGET -> ForgetCommand(bluetoothManager, arguments, result)
+      CommandId.FORGET -> if (companionManager != null) {
+        CompanionForgetCommand(companionManager, arguments, result)
+      } else ForgetCommand(bluetoothManager, arguments, result)
       CommandId.GET_PRIMARY_SERVICE -> GetPrimaryServiceCommand(bluetoothManager, arguments, result)
       CommandId.GET_CHARACTERISTIC -> GetCharacteristicCommand(bluetoothManager, arguments, result)
       CommandId.READ_VALUE -> ReadValueCommand(bluetoothManager, arguments, result)
