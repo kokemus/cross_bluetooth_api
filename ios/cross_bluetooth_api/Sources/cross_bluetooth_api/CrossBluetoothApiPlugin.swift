@@ -39,24 +39,27 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         return manager
     }()
 
+    static func isAccessorySetupEnabled(infoDictionary: [String: Any]? = Bundle.main.infoDictionary) -> Bool {
+        guard #available(iOS 18.0, *) else { return false }
+        return (infoDictionary?["NSAccessorySetupKitSupports"] as? [String])?
+            .contains("Bluetooth") == true
+    }
+
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let method = CommandId(rawValue: call.method)
         let arguments = call.arguments as? [String: AnyObject]
+        let accessorySetupEnabled = Self.isAccessorySetupEnabled()
         let command: Command? = switch method {
         case .getDevices:
             MainActor.assumeIsolated { () -> Command? in
-                if #available(iOS 18.0, *),
-                   (Bundle.main.object(forInfoDictionaryKey: "NSAccessorySetupKitSupports") as? [String])?
-                    .contains("Bluetooth") == true {
+                if #available(iOS 18.0, *), accessorySetupEnabled {
                     return AccessoryGetDevicesCommand(pendingResult: result)
                 }
                 return nil
             }
         case .requestDevice:
             MainActor.assumeIsolated { () -> Command in
-                let options = RequestDeviceOptions.fromMap(arguments ?? [:])
-                     if #available(iOS 18.0, *),
-                         options.filters?.contains(where: { $0.productData != nil }) == true {
+                if #available(iOS 18.0, *), accessorySetupEnabled {
                     return AccessoryRequestDeviceCommand(
                         arguments: arguments,
                         pendingResult: result
@@ -83,9 +86,7 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
             )
         case .forget:
             MainActor.assumeIsolated { () -> Command? in
-                if #available(iOS 18.0, *),
-                   (Bundle.main.object(forInfoDictionaryKey: "NSAccessorySetupKitSupports") as? [String])?
-                    .contains("Bluetooth") == true {
+                if #available(iOS 18.0, *), accessorySetupEnabled {
                     return AccessoryForgetCommand(
                         arguments: arguments,
                         pendingResult: result

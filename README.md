@@ -17,46 +17,29 @@ dependencies:
 
 > minSdkVersion 26
 
+To use [Companion device pairing](https://developer.android.com/develop/connectivity/bluetooth/companion-device-pairing) add the following flag to a manifest file.
+
+```xml
+<uses-feature android:name="android.software.companion_device_setup"/>
+```
+
+
 ### iOS
 
 > The app's Info.plist must contain an NSBluetoothAlwaysUsageDescription key with a string value explaining to the user how the app uses this data.
 
-The plugin uses AccessorySetupKit for `Bluetooth.requestDevice` on iOS 18 and newer when at least one filter contains `productData`. ProductData is used to configure the AccessorySetupKit picker.
-
-Requests without product data and requests on older iOS versions, use the custom picker.
-
-For example to discover the Environmental Sensing service:
+To use [AccessorySetupKit](https://developer.apple.com/documentation/accessorysetupkit) add the following key to it the information property list.
 
 ```xml
 <key>NSAccessorySetupKitSupports</key>
 <array>
-    <string>Bluetooth</string>
-</array>
-<key>NSAccessorySetupBluetoothServices</key>
-<array>
-    <string>0x181A-0000-1000-8000-00805F9B34FB</string>
+	<string>Bluetooth</string>
 </array>
 ```
 
-```dart
-final device = await Bluetooth.requestDevice(
-    RequestDeviceOptions(
-        filters: [
-            Filter(
-                services: ['0000181a-0000-1000-8000-00805f9b34fb'],
-                productData: ProductData(name: 'Tag', image: 'images/tag.png'),
-            )
-        ]
-    ),
-);
+### Examples
 
-final devices = await Bluetooth.getDevices();
-for (final device in devices) {
-    await device.forget();
-}
-```
-
-### Example
+#### Read value
 
 ``` dart
 import 'package:cross_bluetooth_api/cross_bluetooth_api.dart';
@@ -87,14 +70,41 @@ try {
 }
 ```
 
+#### Discover the Environmental Sensing service with AccessorySetupKit
+
+```xml
+<key>NSAccessorySetupKitSupports</key>
+<array>
+    <string>Bluetooth</string>
+</array>
+<key>NSAccessorySetupBluetoothServices</key>
+<array>
+    <string>0x181A-0000-1000-8000-00805F9B34FB</string>
+</array>
+```
+
+```dart
+final device = await Bluetooth.requestDevice(
+    RequestDeviceOptions(
+        filters: [
+            Filter(
+                services: ['0000181a-0000-1000-8000-00805f9b34fb'],
+                productData: ProductData(name: 'Tag', image: 'images/tag.png'),
+            )
+        ]
+    ),
+);
+```
+
 ## Support
 
 | Bluetooth  |  Android | iOS  | Chrome |
 |---|:---:|:---:|:---:|
 | getAvailability |   |   |   |
-| getDevices | x | x | x |
+| getDevices | x | x* | x |
 | requestDevice | x | x | x |
 
+<p>* AccessorySetupKit</p>
 </br>
 
 | BluetoothDevice  |  Android | iOS  | Chrome |
@@ -104,8 +114,9 @@ try {
 | id | x | x | x |
 | name | x | x | x |
 | watchAdvertisements |   |   |   |
-| forget | x | x | x |
+| forget | x | x* | x |
 
+<p>* AccessorySetupKit</p>
 </br>
 
 | BluetoothRemoteGATTServer  |  Android | iOS  | Chrome |

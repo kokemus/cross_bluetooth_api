@@ -6,14 +6,19 @@ import UIKit
 @available(iOS 18.0, *)
 @MainActor
 final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
-    private let session: ASAccessorySession
+    private var session: ASAccessorySession?
     private var displayItems: [ASPickerDisplayItem] = []
     private var selectedDevice: Device?
     private var completed = false
+    private var sessionActivationStarted = false
+
+    private struct InvalidOptions: Error {
+        let message: String
+    }
 
     init(
         arguments: [String: AnyObject]? = [:],
-        session: ASAccessorySession = ASAccessorySession(),
+        session: ASAccessorySession? = nil,
         pendingResult: @escaping FlutterResult
     ) {
         self.session = session
@@ -21,15 +26,20 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
     }
 
     override func execute() async {
-        guard let items = makeDisplayItems() else {
+        switch makeDisplayItems() {
+        case .success(let items):
+            displayItems = items
+        case .failure(let error):
             finish(FlutterError(
                 code: "NotSupportedError",
-                message: "The request options cannot be represented by AccessorySetupKit discovery descriptors.",
+                message: error.message,
                 details: nil
             ))
             return
         }
-        displayItems = items
+        let session = session ?? ASAccessorySession()
+        self.session = session
+        sessionActivationStarted = true
         session.activate(on: .main) { event in
             MainActor.assumeIsolated {
                 self.handle(event.eventType, accessory: event.accessory, error: event.error)
@@ -46,7 +56,7 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
 
         switch eventType {
         case .activated:
-            session.showPicker(for: displayItems) { error in
+            session?.showPicker(for: displayItems) { error in
                 if let error {
                     DispatchQueue.main.async {
                         self.finish(error: error)
@@ -100,63 +110,80 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
     private func finish(_ result: Any) {
         guard !completed else { return }
         completed = true
-        session.invalidate()
+        if sessionActivationStarted {
+            sessionActivationStarted = false
+            session?.invalidate()
+        }
         pendingResult(result)
     }
 
-    private func makeDisplayItems() -> [ASPickerDisplayItem]? {
+    private func makeDisplayItems() -> Result<[ASPickerDisplayItem], InvalidOptions> {
         let options = RequestDeviceOptions.fromMap(arguments)
         guard !options.acceptAllDevices,
               let filters = options.filters, !filters.isEmpty else {
-            return nil
+            return .failure(InvalidOptions(message: "Accessory setup requires discovery filters and does not support acceptAllDevices."))
         }
 
         var items: [ASPickerDisplayItem] = []
 
         for filter in filters {
-            guard let productData = filter.productData,
-                  let productImage = UIImage(named: FlutterDartProject.lookupKey(forAsset: productData.image)),
-                  (filter.manufacturerData?.count ?? 0) <= 1,
-                  (filter.services?.count ?? 0) <= 1 else { return nil }
+            guard (filter.manufacturerData?.count ?? 0) <= 1,
+                  (filter.services?.count ?? 0) <= 1 else {
+                return .failure(InvalidOptions(message: "Accessory setup supports at most one service and manufacturer per filter."))
+            }
+            guard let productData = filter.productData else {
+                return .failure(InvalidOptions(message: "Each accessory filter requires productData with a name and image asset."))
+            }
+            guard let productImage = UIImage(named: FlutterDartProject.lookupKey(forAsset: productData.image)) else {
+                return .failure(InvalidOptions(message: "Accessory product image asset could not be loaded: \(productData.image)."))
+            }
             let descriptor = ASDiscoveryDescriptor()
             if let service = filter.services?.first {
                 descriptor.bluetoothServiceUUID = CBUUID(string: service)
             }
             if let manufacturerData = filter.manufacturerData?.first {
                 guard let companyIdentifier = UInt16(exactly: manufacturerData.companyIdentifier) else {
-                    return nil
+                    return .failure(InvalidOptions(message: "Manufacturer companyIdentifier must be between 0 and 65535."))
                 }
                 descriptor.bluetoothCompanyIdentifier = ASBluetoothCompanyIdentifier(rawValue: companyIdentifier)
 
                 let prefix = manufacturerData.dataPrefix ?? []
                 let prefixBytes = prefix.compactMap(UInt8.init(exactly:))
-                guard prefixBytes.count == prefix.count else { return nil }
+                guard prefixBytes.count == prefix.count else {
+                    return .failure(InvalidOptions(message: "Manufacturer dataPrefix values must be between 0 and 255."))
+                }
                 if !prefixBytes.isEmpty {
                     descriptor.bluetoothManufacturerDataBlob = Data(prefixBytes)
                 }
 
                 if let mask = manufacturerData.mask {
                     let maskBytes = mask.compactMap(UInt8.init(exactly:))
-                    guard maskBytes.count == mask.count,
-                          maskBytes.count == prefixBytes.count else { return nil }
+                    guard maskBytes.count == mask.count else {
+                        return .failure(InvalidOptions(message: "Manufacturer mask values must be between 0 and 255."))
+                    }
+                    guard maskBytes.count == prefixBytes.count else {
+                        return .failure(InvalidOptions(message: "Manufacturer mask must have the same length as dataPrefix."))
+                    }
                     if !maskBytes.isEmpty {
                         descriptor.bluetoothManufacturerDataMask = Data(maskBytes)
                     }
                 }
             }
             if let prefix = filter.namePrefix {
-                guard !prefix.isEmpty else { return nil }
+                guard !prefix.isEmpty else {
+                    return .failure(InvalidOptions(message: "Accessory namePrefix must not be empty."))
+                }
                 if #available(iOS 18.2, *) {
                     descriptor.bluetoothNameSubstring = prefix
                     descriptor.bluetoothNameSubstringCompareOptions = [.anchored, .literal]
                 } else {
-                    return nil
+                    return .failure(InvalidOptions(message: "Accessory namePrefix requires iOS 18.2 or newer."))
                 }
             }
             guard descriptor.bluetoothServiceUUID != nil
                 || descriptor.bluetoothNameSubstring != nil
                 || !(filter.manufacturerData?.isEmpty ?? true) else {
-                return nil
+                return .failure(InvalidOptions(message: "Accessory setup requires a service, name prefix, or manufacturer filter."))
             }
             items.append(ASPickerDisplayItem(
                 name: productData.name,
@@ -164,6 +191,6 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
                 descriptor: descriptor
             ))
         }
-        return items
+        return .success(items)
     }
 }
