@@ -2,8 +2,7 @@ import AccessorySetupKit
 import Flutter
 
 @available(iOS 18.0, *)
-@MainActor
-final class AccessoryForgetCommand: BaseCommand, @unchecked Sendable {
+final class AccessoryForgetCommand: BaseCommand {
     private let session: ASAccessorySession
     private var completed = false
     private var removalStarted = false
@@ -22,15 +21,13 @@ final class AccessoryForgetCommand: BaseCommand, @unchecked Sendable {
             finish(FlutterError.notFoundError())
             return
         }
-        session.activate(on: .main) { event in
-            MainActor.assumeIsolated {
-                self.handle(event.eventType, error: event.error)
-            }
-        }
+        session.activate(on: .main, eventHandler: handle(event:))
     }
 
-    func handle(_ eventType: ASAccessoryEventType, error: Error? = nil) {
+    func handle(event: ASAccessoryEvent) {
         guard !completed else { return }
+        let eventType = event.eventType
+        let error = event.error
         if let error {
             finishError(error)
             return
@@ -54,13 +51,11 @@ final class AccessoryForgetCommand: BaseCommand, @unchecked Sendable {
                 return
             }
             session.removeAccessory(accessory) { error in
-                DispatchQueue.main.async {
-                    guard !self.completed else { return }
-                    if let error {
-                        self.finishError(error)
-                    } else {
-                        self.finish(nil)
-                    }
+                guard !self.completed else { return }
+                if let error {
+                    self.finishError(error)
+                } else {
+                    self.finish(nil)
                 }
             }
         case .invalidated:

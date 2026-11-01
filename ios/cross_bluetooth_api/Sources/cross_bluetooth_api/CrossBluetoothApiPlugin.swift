@@ -34,7 +34,7 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
 
     private var eventSink: FlutterEventSink?
     private lazy var manager: BluetoothManager = {
-        let manager = BluetoothManagerImp(queue: .main)
+        let manager = BluetoothManagerImp()
         manager.addDelegate(self)
         return manager
     }()
@@ -51,21 +51,19 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
         let accessorySetupEnabled = Self.isAccessorySetupEnabled()
         let command: Command? = switch method {
         case .getDevices:
-            MainActor.assumeIsolated { () -> Command? in
-                if #available(iOS 18.0, *), accessorySetupEnabled {
-                    return AccessoryGetDevicesCommand(pendingResult: result)
-                }
-                return nil
+            if #available(iOS 18.0, *), accessorySetupEnabled {
+                AccessoryGetDevicesCommand(pendingResult: result)
+            } else {
+                nil
             }
         case .requestDevice:
-            MainActor.assumeIsolated { () -> Command in
-                if #available(iOS 18.0, *), accessorySetupEnabled {
-                    return AccessoryRequestDeviceCommand(
-                        arguments: arguments,
-                        pendingResult: result
-                    )
-                }
-                return RequestDeviceCommand(
+            if #available(iOS 18.0, *), accessorySetupEnabled {
+                AccessoryRequestDeviceCommand(
+                    arguments: arguments,
+                    pendingResult: result
+                )
+            } else {
+                RequestDeviceCommand(
                     manager: manager,
                     viewController: viewController,
                     arguments: arguments,
@@ -85,14 +83,13 @@ public class SwiftCrossBluetoothApiPlugin: NSObject, FlutterPlugin {
                 pendingResult: result
             )
         case .forget:
-            MainActor.assumeIsolated { () -> Command? in
-                if #available(iOS 18.0, *), accessorySetupEnabled {
-                    return AccessoryForgetCommand(
-                        arguments: arguments,
-                        pendingResult: result
-                    )
-                }
-                return nil
+            if #available(iOS 18.0, *), accessorySetupEnabled {
+                AccessoryForgetCommand(
+                    arguments: arguments,
+                    pendingResult: result
+                )
+            } else {
+                nil
             }
         case .getPrimaryService:
             GetPrimaryServiceCommand(

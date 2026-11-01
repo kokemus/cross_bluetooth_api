@@ -4,8 +4,7 @@ import Flutter
 import UIKit
 
 @available(iOS 18.0, *)
-@MainActor
-final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
+final class AccessoryRequestDeviceCommand: BaseCommand {
     private var session: ASAccessorySession?
     private var displayItems: [ASPickerDisplayItem] = []
     private var selectedDevice: Device?
@@ -40,15 +39,14 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
         let session = session ?? ASAccessorySession()
         self.session = session
         sessionActivationStarted = true
-        session.activate(on: .main) { event in
-            MainActor.assumeIsolated {
-                self.handle(event.eventType, accessory: event.accessory, error: event.error)
-            }
-        }
+        session.activate(on: .main, eventHandler: handle(event:))
     }
 
-    func handle(_ eventType: ASAccessoryEventType, accessory: ASAccessory? = nil, error: Error? = nil) {
+    func handle(event: ASAccessoryEvent) {
         guard !completed else { return }
+        let eventType = event.eventType
+        let accessory = event.accessory
+        let error = event.error
         if let error {
             finish(error: error)
             return
@@ -58,9 +56,7 @@ final class AccessoryRequestDeviceCommand: BaseCommand, @unchecked Sendable {
         case .activated:
             session?.showPicker(for: displayItems) { error in
                 if let error {
-                    DispatchQueue.main.async {
-                        self.finish(error: error)
-                    }
+                    self.finish(error: error)
                 }
             }
         case .accessoryAdded, .accessoryChanged:
