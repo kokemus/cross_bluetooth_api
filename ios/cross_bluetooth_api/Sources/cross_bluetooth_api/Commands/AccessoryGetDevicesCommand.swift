@@ -19,9 +19,11 @@ final class AccessoryGetDevicesCommand: BaseCommand {
     }
 
     func handle(event: ASAccessoryEvent) {
+        handle(event.eventType, error: event.error)
+    }
+
+    func handle(_ eventType: ASAccessoryEventType, error: Error? = nil) {
         guard !completed else { return }
-        let eventType = event.eventType
-        let error = event.error
         if let error {
             let error = error as NSError
             finish(FlutterError(

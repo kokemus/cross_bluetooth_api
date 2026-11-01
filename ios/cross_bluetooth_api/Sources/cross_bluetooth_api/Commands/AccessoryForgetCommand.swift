@@ -25,9 +25,11 @@ final class AccessoryForgetCommand: BaseCommand {
     }
 
     func handle(event: ASAccessoryEvent) {
+        handle(event.eventType, error: event.error)
+    }
+
+    func handle(_ eventType: ASAccessoryEventType, error: Error? = nil) {
         guard !completed else { return }
-        let eventType = event.eventType
-        let error = event.error
         if let error {
             finishError(error)
             return

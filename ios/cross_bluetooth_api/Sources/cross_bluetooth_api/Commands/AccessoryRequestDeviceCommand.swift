@@ -43,10 +43,11 @@ final class AccessoryRequestDeviceCommand: BaseCommand {
     }
 
     func handle(event: ASAccessoryEvent) {
+        handle(event.eventType, accessory: event.accessory, error: event.error)
+    }
+
+    func handle(_ eventType: ASAccessoryEventType, accessory: ASAccessory? = nil, error: Error? = nil) {
         guard !completed else { return }
-        let eventType = event.eventType
-        let accessory = event.accessory
-        let error = event.error
         if let error {
             finish(error: error)
             return
