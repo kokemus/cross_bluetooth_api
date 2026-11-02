@@ -118,7 +118,7 @@ class CrossBluetoothApiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
       CommandId.CONNECT -> ConnectCommand(bluetoothManager, arguments, result)
       CommandId.DISCONNECT -> DisconnectCommand(bluetoothManager, arguments, result)
       CommandId.FORGET -> if (companionManager != null) {
-        CompanionForgetCommand(companionManager, arguments, result)
+        CompanionForgetCommand(companionManager, bluetoothManager, arguments, result)
       } else ForgetCommand(bluetoothManager, arguments, result)
       CommandId.GET_PRIMARY_SERVICE -> GetPrimaryServiceCommand(bluetoothManager, arguments, result)
       CommandId.GET_CHARACTERISTIC -> GetCharacteristicCommand(bluetoothManager, arguments, result)
