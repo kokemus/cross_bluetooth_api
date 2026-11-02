@@ -65,15 +65,15 @@ class CompanionRequestDeviceCommand(
                 }
 
                 override fun onFailure(error: CharSequence?) {
-                    finish { it.error("NotFoundError", error?.toString() ?: "Companion device association failed.", null) }
+                    finish { it.notFoundError(error?.toString() ?: "Companion device association failed.") }
                 }
             }, Handler(Looper.getMainLooper()))
         } catch (error: SecurityException) {
-            finish { it.error("SecurityError", error.message, null) }
+            finish { it.securityError(error.message) }
         } catch (error: IllegalArgumentException) {
-            finish { it.error("NotSupportedError", error.message, null) }
+            finish { it.notSupportedError(error.message) }
         } catch (error: IllegalStateException) {
-            finish { it.error("InvalidStateError", error.message, null) }
+            finish { it.invalidStateError(error.message) }
         }
     }
 

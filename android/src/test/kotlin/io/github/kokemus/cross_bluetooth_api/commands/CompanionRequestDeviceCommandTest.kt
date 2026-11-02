@@ -162,7 +162,7 @@ class CompanionRequestDeviceCommandTest {
             callback.onFailure("stale")
             assertEquals(0, second.replyCount)
             shadowOf(manager).lastAssociationCallback.onFailure("Discovery failed")
-            assertEquals("Discovery failed", second.errorMessage)
+            assertEquals("NotFoundError: Discovery failed", second.errorMessage)
             assertEquals(1, first.replyCount)
         }
     }
@@ -200,7 +200,7 @@ class CompanionRequestDeviceCommandTest {
             val callback = shadowOf(manager).lastAssociationCallback
             callback.onAssociationPending(pickerIntentSender())
             callback.onFailure("Association failed")
-            assertEquals("Association failed", failed.errorMessage)
+            assertEquals("NotFoundError: Association failed", failed.errorMessage)
 
             var completed = 0
             val custom = FakeResult()

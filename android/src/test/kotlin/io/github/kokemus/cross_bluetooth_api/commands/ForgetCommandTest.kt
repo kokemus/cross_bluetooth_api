@@ -75,7 +75,8 @@ class ForgetCommandTest {
         }
         val result = FakeResult()
         ForgetCommand(manager, mapOf("id" to deviceId), result).execute()
-        assertEquals("UnknownError", result.errorCode)
+        assertEquals("NetworkError", result.errorCode)
+        assertEquals("NetworkError: Failed to remove Bluetooth bond: Bond removal failed", result.errorMessage)
         assertEquals(1, result.replyCount)
     }
 

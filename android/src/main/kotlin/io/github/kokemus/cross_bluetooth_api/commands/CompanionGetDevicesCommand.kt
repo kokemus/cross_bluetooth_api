@@ -3,6 +3,9 @@ package io.github.kokemus.cross_bluetooth_api.commands
 import android.companion.CompanionDeviceManager
 import android.os.Build
 import io.flutter.plugin.common.MethodChannel
+import io.github.kokemus.cross_bluetooth_api.extensions.invalidStateError
+import io.github.kokemus.cross_bluetooth_api.extensions.notSupportedError
+import io.github.kokemus.cross_bluetooth_api.extensions.securityError
 import io.github.kokemus.cross_bluetooth_api.models.Device
 import java.util.Locale
 
@@ -25,11 +28,11 @@ class CompanionGetDevicesCommand(
             }
             pendingResult.success(devices.map { it.toMap() })
         } catch (error: SecurityException) {
-            pendingResult.error("SecurityError", error.message, null)
+            pendingResult.securityError(error.message)
         } catch (error: IllegalArgumentException) {
-            pendingResult.error("NotSupportedError", error.message, null)
+            pendingResult.notSupportedError(error.message)
         } catch (error: IllegalStateException) {
-            pendingResult.error("InvalidStateError", error.message, null)
+            pendingResult.invalidStateError(error.message)
         }
     }
 }

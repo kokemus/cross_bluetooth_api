@@ -6,6 +6,7 @@ import android.companion.CompanionDeviceManager
 import android.os.Build
 import androidx.annotation.RequiresPermission
 import io.flutter.plugin.common.MethodChannel
+import io.github.kokemus.cross_bluetooth_api.extensions.invalidStateError
 import io.github.kokemus.cross_bluetooth_api.extensions.notFoundError
 import io.github.kokemus.cross_bluetooth_api.extensions.networkError
 import io.github.kokemus.cross_bluetooth_api.extensions.notSupportedError
@@ -45,20 +46,16 @@ class CompanionForgetCommand(
                 pendingResult.networkError()
             }
         } catch (error: SecurityException) {
-            pendingResult.error("SecurityError", error.message, null)
+            pendingResult.securityError(error.message)
         } catch (error: IllegalArgumentException) {
-            pendingResult.error("NotSupportedError", error.message, null)
+            pendingResult.notSupportedError(error.message)
         } catch (error: IllegalStateException) {
-            pendingResult.error("InvalidStateError", error.message, null)
+            pendingResult.invalidStateError(error.message)
         } catch (error: InvocationTargetException) {
             if (error.targetException is SecurityException) {
                 pendingResult.securityError()
             } else {
-                pendingResult.error(
-                    "UnknownError",
-                    "UnknownError: Failed to remove Bluetooth bond: ${error.targetException.message}",
-                    null
-                )
+                pendingResult.networkError("Failed to remove Bluetooth bond: ${error.targetException.message}")
             }
         } catch (_: ReflectiveOperationException) {
             pendingResult.notSupportedError()

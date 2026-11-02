@@ -116,17 +116,29 @@ class CompanionForgetCommandTest {
     @Config(sdk = [26, 32, 35])
     fun execute_reportsBondRemovalErrorsWithoutAssociation() = runTest {
         val errors = listOf(
-            SecurityException() to "SecurityError",
+            SecurityException("Permission denied") to "SecurityError",
+            IllegalArgumentException("Invalid association") to "NotSupportedError",
+            IllegalStateException("Bluetooth unavailable") to "InvalidStateError",
             InvocationTargetException(SecurityException()) to "SecurityError",
             NoSuchMethodException("removeBond") to "NotSupportedError",
             IllegalAccessException("removeBond") to "NotSupportedError",
-            InvocationTargetException(IllegalStateException("Bond removal failed")) to "UnknownError"
+            InvocationTargetException(IllegalStateException("Bond removal failed")) to "NetworkError"
         )
         for ((error, expectedCode) in errors) {
             bluetoothManager.forgetException = error
             val result = FakeResult()
             CompanionForgetCommand(manager, bluetoothManager, mapOf("id" to address), result).execute()
             assertEquals(expectedCode, result.errorCode)
+            val expectedMessage = when (error) {
+                is InvocationTargetException -> if (error.targetException is SecurityException) {
+                    "SecurityError: There is no Bluetooth device that matches the specified options."
+                } else {
+                    "NetworkError: Failed to remove Bluetooth bond: ${error.targetException.message}"
+                }
+                is ReflectiveOperationException -> "NotSupportedError: The operation is not supported."
+                else -> "$expectedCode: ${error.message}"
+            }
+            assertEquals(expectedMessage, result.errorMessage)
             assertEquals(1, result.replyCount)
         }
     }
