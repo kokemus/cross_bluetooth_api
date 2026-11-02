@@ -125,7 +125,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         XCTAssertEqual((result as? FlutterError)?.code, "NotSupportedError")
         XCTAssertEqual(
             (result as? FlutterError)?.message,
-            "Accessory product image asset could not be loaded: images/missing.png."
+            "NotSupportedError: Accessory product image asset could not be loaded: images/missing.png."
         )
         XCTAssertFalse(session.activated)
         XCTAssertFalse(session.pickerRequested)
@@ -261,7 +261,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
             await command.execute()
 
             XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
-            XCTAssertEqual((result.value as? FlutterError)?.message, testCase.message)
+            XCTAssertEqual((result.value as? FlutterError)?.message, "NotSupportedError: \(testCase.message)")
             XCTAssertEqual(result.replyCount, 1)
             XCTAssertFalse(session.activated)
             XCTAssertFalse(session.pickerRequested)
@@ -283,7 +283,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
         XCTAssertEqual(
             (result.value as? FlutterError)?.message,
-            "Each accessory filter requires productData with a name and image asset."
+            "NotSupportedError: Each accessory filter requires productData with a name and image asset."
         )
         XCTAssertEqual(result.replyCount, 1)
         XCTAssertFalse(session.activated)
@@ -302,7 +302,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
             XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
             XCTAssertEqual(
                 (result.value as? FlutterError)?.message,
-                "Accessory setup requires discovery filters and does not support acceptAllDevices."
+                "NotSupportedError: Accessory setup requires discovery filters and does not support acceptAllDevices."
             )
             XCTAssertEqual(result.replyCount, 1)
             XCTAssertFalse(session.activated)
@@ -321,7 +321,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
         XCTAssertEqual(
             (result.value as? FlutterError)?.message,
-            "Accessory setup requires discovery filters and does not support acceptAllDevices."
+            "NotSupportedError: Accessory setup requires discovery filters and does not support acceptAllDevices."
         )
         XCTAssertEqual(result.replyCount, 1)
     }
@@ -360,7 +360,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
             XCTAssertEqual(session.pickerItems.first?.descriptor.bluetoothNameSubstringCompareOptions, [.anchored, .literal])
         } else {
             XCTAssertEqual((result as? FlutterError)?.code, "NotSupportedError")
-            XCTAssertEqual((result as? FlutterError)?.message, "Accessory namePrefix requires iOS 18.2 or newer.")
+            XCTAssertEqual((result as? FlutterError)?.message, "NotSupportedError: Accessory namePrefix requires iOS 18.2 or newer.")
             XCTAssertFalse(session.activated)
         }
     }
@@ -407,9 +407,14 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         var result: Any?
         let command = makeCommand(session: session) { result = $0 }
         await command.execute()
-        command.handle(.invalidated, error: NSError(domain: ASErrorDomain, code: ASError.Code.activationFailed.rawValue))
+        let activationError = NSError(domain: ASErrorDomain, code: ASError.Code.activationFailed.rawValue)
+        command.handle(.invalidated, error: activationError)
 
         XCTAssertEqual((result as? FlutterError)?.code, "NotFoundError")
+        XCTAssertEqual((result as? FlutterError)?.message, "NotFoundError: \(activationError.localizedDescription)")
+        let details = (result as? FlutterError)?.details as? [String: Any]
+        XCTAssertEqual(details?["domain"] as? String, ASErrorDomain)
+        XCTAssertEqual(details?["code"] as? Int, activationError.code)
         XCTAssertFalse(session.pickerRequested)
         XCTAssertEqual(session.invalidationCount, 1)
     }
@@ -487,7 +492,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         command.handle(.pickerDidDismiss)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual((results.first as? FlutterError)?.message, "Invalid accessory configuration")
+        XCTAssertEqual((results.first as? FlutterError)?.message, "NotFoundError: Invalid accessory configuration")
         XCTAssertTrue(session.activated)
         XCTAssertTrue(session.pickerRequested)
         XCTAssertEqual(session.invalidationCount, 1)
@@ -507,7 +512,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         XCTAssertEqual((result as? FlutterError)?.code, "NotSupportedError")
         XCTAssertEqual(
             (result as? FlutterError)?.message,
-            "Accessory setup requires discovery filters and does not support acceptAllDevices."
+            "NotSupportedError: Accessory setup requires discovery filters and does not support acceptAllDevices."
         )
         XCTAssertFalse(session.activated)
         XCTAssertFalse(session.pickerRequested)

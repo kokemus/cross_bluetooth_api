@@ -43,5 +43,30 @@ final class FlutterErrorTests: XCTestCase {
                 XCTAssertNil(testCase.error.details)
             }
         }
+
+    }
+
+    func test_helpers_preserveNativeErrorDetails() {
+        let details: [String: Any] = ["domain": "TestDomain", "code": 42]
+        let cases = [
+            FlutterError.networkError(message: "Connection failed.", details: details),
+            FlutterError.notFoundError(message: "Accessory unavailable.", details: details)
+        ]
+        for error in cases {
+            let actualDetails = error.details as? [String: Any]
+            XCTAssertEqual(actualDetails?["domain"] as? String, "TestDomain")
+            XCTAssertEqual(actualDetails?["code"] as? Int, 42)
+        }
+    }
+
+    func test_baseCommand_reportsNotSupported() async {
+        var result: Any?
+        let command = BaseCommand(id: .forget, arguments: nil) { result = $0 }
+
+        await command.execute()
+
+        let error = result as? FlutterError
+        XCTAssertEqual(error?.code, "NotSupportedError")
+        XCTAssertEqual(error?.message, "NotSupportedError: Command forget is not implemented.")
     }
 }

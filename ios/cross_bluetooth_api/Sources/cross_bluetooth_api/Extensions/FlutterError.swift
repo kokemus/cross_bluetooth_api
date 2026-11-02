@@ -1,19 +1,19 @@
 import Flutter
 
 extension FlutterError {
-    static func networkError(message: String = "A network error occurred.") -> FlutterError {
+    static func networkError(message: String = "A network error occurred.", details: Any? = nil) -> FlutterError {
         return FlutterError(
             code: "NetworkError",
             message: "NetworkError: \(message)",
-            details: nil
+            details: details
         )
     }
 
-    static func notFoundError(message: String = "There is no Bluetooth device that matches the specified options.") -> FlutterError {
+    static func notFoundError(message: String = "There is no Bluetooth device that matches the specified options.", details: Any? = nil) -> FlutterError {
         return FlutterError(
             code: "NotFoundError",
             message: "NotFoundError: \(message)",
-            details: nil
+            details: details
         )
     }
 

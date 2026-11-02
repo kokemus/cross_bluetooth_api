@@ -56,7 +56,8 @@ final class AccessoryForgetCommandTests: XCTestCase {
         let session = ForgetAccessorySession()
         let target = ForgetAccessory()
         session.storedAccessories = [target]
-        session.removalError = NSError(domain: "ForgetTests", code: 42)
+        let removalError = NSError(domain: "ForgetTests", code: 42)
+        session.removalError = removalError
         let replied = expectation(description: "Error reported")
         let result = FakeFlutterResult()
         let command = AccessoryForgetCommand(
@@ -69,7 +70,12 @@ final class AccessoryForgetCommandTests: XCTestCase {
         await command.execute()
         command.handle(.activated)
         await fulfillment(of: [replied], timeout: 2)
-        XCTAssertEqual((result.value as? FlutterError)?.code, "UnknownError")
+        let error = result.value as? FlutterError
+        XCTAssertEqual(error?.code, "NetworkError")
+        XCTAssertEqual(error?.message, "NetworkError: \(removalError.localizedDescription)")
+        let details = error?.details as? [String: Any]
+        XCTAssertEqual(details?["domain"] as? String, "ForgetTests")
+        XCTAssertEqual(details?["code"] as? Int, 42)
         XCTAssertEqual(session.invalidationCount, 1)
     }
 
@@ -84,7 +90,7 @@ final class AccessoryForgetCommandTests: XCTestCase {
         await command.execute()
         command.handle(.invalidated, error: NSError(domain: "ForgetTests", code: 1))
         command.handle(.activated)
-        XCTAssertEqual((result.value as? FlutterError)?.code, "UnknownError")
+        XCTAssertEqual((result.value as? FlutterError)?.code, "NetworkError")
         XCTAssertEqual(result.replyCount, 1)
     }
 

@@ -50,7 +50,16 @@ final class AccessoryGetDevicesCommandTests: XCTestCase {
             await command.execute()
             command.handle(.invalidated, error: error)
             command.handle(.activated)
-            XCTAssertEqual((result.value as? FlutterError)?.code, error == nil ? "NetworkError" : "UnknownError")
+            let flutterError = result.value as? FlutterError
+            XCTAssertEqual(flutterError?.code, "NetworkError")
+            if let error {
+                XCTAssertEqual(flutterError?.message, "NetworkError: \(error.localizedDescription)")
+                let details = flutterError?.details as? [String: Any]
+                XCTAssertEqual(details?["domain"] as? String, error.domain)
+                XCTAssertEqual(details?["code"] as? Int, error.code)
+            } else {
+                XCTAssertNil(flutterError?.details)
+            }
             XCTAssertEqual(result.replyCount, 1)
             XCTAssertEqual(session.invalidationCount, 1)
         }

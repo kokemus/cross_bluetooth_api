@@ -26,8 +26,7 @@ final class AccessoryGetDevicesCommand: BaseCommand {
         guard !completed else { return }
         if let error {
             let error = error as NSError
-            finish(FlutterError(
-                code: "UnknownError",
+            finish(FlutterError.networkError(
                 message: error.localizedDescription,
                 details: ["domain": error.domain, "code": error.code]
             ))

@@ -29,11 +29,7 @@ final class AccessoryRequestDeviceCommand: BaseCommand {
         case .success(let items):
             displayItems = items
         case .failure(let error):
-            finish(FlutterError(
-                code: "NotSupportedError",
-                message: error.message,
-                details: nil
-            ))
+            finish(FlutterError.notSupportedError(message: error.message))
             return
         }
         let session = session ?? ASAccessorySession()
@@ -95,13 +91,14 @@ final class AccessoryRequestDeviceCommand: BaseCommand {
                 "message": underlyingError.localizedDescription
             ]
         }
-        finish(FlutterError(
-            code: connectionFailed ? "NetworkError" : "NotFoundError",
-            message: connectionFailed
-                ? "NetworkError: AccessorySetupKit could not connect to the selected accessory. \(error.localizedDescription)"
-                : error.localizedDescription,
-            details: details
-        ))
+        if connectionFailed {
+            finish(FlutterError.networkError(
+                message: "AccessorySetupKit could not connect to the selected accessory. \(error.localizedDescription)",
+                details: details
+            ))
+        } else {
+            finish(FlutterError.notFoundError(message: error.localizedDescription, details: details))
+        }
     }
 
     private func finish(_ result: Any) {

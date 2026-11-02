@@ -45,10 +45,8 @@ final class AccessoryForgetCommand: BaseCommand {
             guard let accessory = session.accessories.first(where: {
                 $0.bluetoothIdentifier == UUID(uuidString: deviceId)
             }) else {
-                finish(FlutterError(
-                    code: "NotSupportedError",
-                    message: "NotSupportedError: The device is not an AccessorySetupKit accessory.",
-                    details: nil
+                finish(FlutterError.notSupportedError(
+                    message: "The device is not an AccessorySetupKit accessory."
                 ))
                 return
             }
@@ -69,8 +67,7 @@ final class AccessoryForgetCommand: BaseCommand {
 
     private func finishError(_ error: Error) {
         let error = error as NSError
-        finish(FlutterError(
-            code: "UnknownError",
+        finish(FlutterError.networkError(
             message: error.localizedDescription,
             details: ["domain": error.domain, "code": error.code]
         ))
