@@ -123,6 +123,10 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         await command.execute()
 
         XCTAssertEqual((result as? FlutterError)?.code, "NotSupportedError")
+        XCTAssertEqual(
+            (result as? FlutterError)?.message,
+            "NotSupportedError: Accessory product image asset could not be loaded: images/missing.png."
+        )
         XCTAssertFalse(session.activated)
         XCTAssertFalse(session.pickerRequested)
     }
@@ -196,6 +200,132 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         }
     }
 
+    func test_execute_reportsSpecificValidationErrors() async {
+        let cases: [(filter: [String: AnyObject], message: String)] = [
+            (
+                ["services": ["180A", "180F"] as AnyObject],
+                "Accessory setup supports at most one service and manufacturer per filter."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": 1], ["companyIdentifier": 2]] as AnyObject],
+                "Accessory setup supports at most one service and manufacturer per filter."
+            ),
+            (
+                ["namePrefix": "" as AnyObject],
+                "Accessory namePrefix must not be empty."
+            ),
+            (
+                [:],
+                "Accessory setup requires a service, name prefix, or manufacturer filter."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": -1]] as AnyObject],
+                "Manufacturer companyIdentifier must be between 0 and 65535."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": 65536]] as AnyObject],
+                "Manufacturer companyIdentifier must be between 0 and 65535."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": 1, "dataPrefix": [-1]]] as AnyObject],
+                "Manufacturer dataPrefix values must be between 0 and 255."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": 1, "dataPrefix": [256]]] as AnyObject],
+                "Manufacturer dataPrefix values must be between 0 and 255."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": 1, "dataPrefix": [1], "mask": [-1]]] as AnyObject],
+                "Manufacturer mask values must be between 0 and 255."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": 1, "dataPrefix": [1], "mask": [256]]] as AnyObject],
+                "Manufacturer mask values must be between 0 and 255."
+            ),
+            (
+                ["manufacturerData": [["companyIdentifier": 1, "dataPrefix": [1], "mask": []]] as AnyObject],
+                "Manufacturer mask must have the same length as dataPrefix."
+            )
+        ]
+        for testCase in cases {
+            let session = FakeAccessorySession()
+            let result = FakeFlutterResult()
+            var filter = testCase.filter
+            filter["productData"] = ["name": "Sensor", "image": "images/tag.png"] as AnyObject
+            let command = makeCommand(
+                session: session,
+                arguments: ["filters": [filter] as AnyObject],
+                pendingResult: result.handler
+            )
+
+            await command.execute()
+
+            XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
+            XCTAssertEqual((result.value as? FlutterError)?.message, "NotSupportedError: \(testCase.message)")
+            XCTAssertEqual(result.replyCount, 1)
+            XCTAssertFalse(session.activated)
+            XCTAssertFalse(session.pickerRequested)
+            XCTAssertEqual(session.invalidationCount, 0)
+        }
+    }
+
+    func test_execute_reportsMissingProductData() async {
+        let session = FakeAccessorySession()
+        let result = FakeFlutterResult()
+        let command = makeCommand(
+            session: session,
+            arguments: ["filters": [["services": ["180A"]]] as AnyObject],
+            pendingResult: result.handler
+        )
+
+        await command.execute()
+
+        XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
+        XCTAssertEqual(
+            (result.value as? FlutterError)?.message,
+            "NotSupportedError: Each accessory filter requires productData with a name and image asset."
+        )
+        XCTAssertEqual(result.replyCount, 1)
+        XCTAssertFalse(session.activated)
+        XCTAssertEqual(session.invalidationCount, 0)
+    }
+
+    func test_execute_reportsMissingDiscoveryFilters() async {
+        let configurations: [[String: AnyObject]] = [[:], ["filters": [] as AnyObject]]
+        for arguments in configurations {
+            let session = FakeAccessorySession()
+            let result = FakeFlutterResult()
+            let command = makeCommand(session: session, arguments: arguments, pendingResult: result.handler)
+
+            await command.execute()
+
+            XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
+            XCTAssertEqual(
+                (result.value as? FlutterError)?.message,
+                "NotSupportedError: Accessory setup requires discovery filters and does not support acceptAllDevices."
+            )
+            XCTAssertEqual(result.replyCount, 1)
+            XCTAssertFalse(session.activated)
+            XCTAssertEqual(session.invalidationCount, 0)
+        }
+    }
+
+    func test_execute_invalidOptionsWithoutInjectedSessionReturnsErrorOnce() async {
+        let result = FakeFlutterResult()
+        let command = AccessoryRequestDeviceCommand(arguments: [:], pendingResult: result.handler)
+
+        await command.execute()
+        command.handle(.invalidated)
+        command.handle(.activated)
+
+        XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
+        XCTAssertEqual(
+            (result.value as? FlutterError)?.message,
+            "NotSupportedError: Accessory setup requires discovery filters and does not support acceptAllDevices."
+        )
+        XCTAssertEqual(result.replyCount, 1)
+    }
+
     func test_execute_leavesServiceDeclarationValidationToPlatform() async {
         let session = FakeAccessorySession()
         let command = makeCommand(session: session, arguments: [
@@ -230,6 +360,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
             XCTAssertEqual(session.pickerItems.first?.descriptor.bluetoothNameSubstringCompareOptions, [.anchored, .literal])
         } else {
             XCTAssertEqual((result as? FlutterError)?.code, "NotSupportedError")
+            XCTAssertEqual((result as? FlutterError)?.message, "NotSupportedError: Accessory namePrefix requires iOS 18.2 or newer.")
             XCTAssertFalse(session.activated)
         }
     }
@@ -276,9 +407,14 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         var result: Any?
         let command = makeCommand(session: session) { result = $0 }
         await command.execute()
-        command.handle(.invalidated, error: NSError(domain: ASErrorDomain, code: ASError.Code.activationFailed.rawValue))
+        let activationError = NSError(domain: ASErrorDomain, code: ASError.Code.activationFailed.rawValue)
+        command.handle(.invalidated, error: activationError)
 
         XCTAssertEqual((result as? FlutterError)?.code, "NotFoundError")
+        XCTAssertEqual((result as? FlutterError)?.message, "NotFoundError: \(activationError.localizedDescription)")
+        let details = (result as? FlutterError)?.details as? [String: Any]
+        XCTAssertEqual(details?["domain"] as? String, ASErrorDomain)
+        XCTAssertEqual(details?["code"] as? Int, activationError.code)
         XCTAssertFalse(session.pickerRequested)
         XCTAssertEqual(session.invalidationCount, 1)
     }
@@ -356,7 +492,7 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         command.handle(.pickerDidDismiss)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual((results.first as? FlutterError)?.message, "Invalid accessory configuration")
+        XCTAssertEqual((results.first as? FlutterError)?.message, "NotFoundError: Invalid accessory configuration")
         XCTAssertTrue(session.activated)
         XCTAssertTrue(session.pickerRequested)
         XCTAssertEqual(session.invalidationCount, 1)
@@ -374,6 +510,10 @@ final class AccessoryRequestDeviceCommandTests: XCTestCase {
         await command.execute()
 
         XCTAssertEqual((result as? FlutterError)?.code, "NotSupportedError")
+        XCTAssertEqual(
+            (result as? FlutterError)?.message,
+            "NotSupportedError: Accessory setup requires discovery filters and does not support acceptAllDevices."
+        )
         XCTAssertFalse(session.activated)
         XCTAssertFalse(session.pickerRequested)
     }
@@ -398,6 +538,7 @@ private final class FakeAccessorySession: ASAccessorySession, @unchecked Sendabl
     }
 
     override func invalidate() {
+        XCTAssertTrue(activated, "A session must not be invalidated before activation starts.")
         invalidationCount += 1
     }
 }

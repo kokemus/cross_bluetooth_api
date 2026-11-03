@@ -36,11 +36,7 @@ class ForgetCommand(
             if (error.targetException is SecurityException) {
                 pendingResult.securityError()
             } else {
-                pendingResult.error(
-                    "UnknownError",
-                    "UnknownError: Failed to remove Bluetooth bond: ${error.targetException.message}",
-                    null
-                )
+                pendingResult.networkError("Failed to remove Bluetooth bond: ${error.targetException.message}")
             }
         } catch (_: ReflectiveOperationException) {
             pendingResult.notSupportedError()

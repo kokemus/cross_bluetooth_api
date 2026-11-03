@@ -78,6 +78,35 @@ class RequestDeviceCommandTest {
     }
 
     @Test
+    fun execute_retainsRequestAcrossConfigurationChangeAndCompletesOnPermanentDetach() = runTest {
+        withLauncher { _, launcher, binding ->
+            val retained = FakeResult()
+            val first = async { RequestDeviceCommand(launcher, mapOf("acceptAllDevices" to true), retained).execute() }
+            runCurrent()
+            launcher.detach(forConfigChanges = true)
+            assertEquals(0, binding.resultListenerCount)
+            assertEquals(0, retained.replyCount)
+            assertFalse(first.isCompleted)
+            launcher.attach(binding)
+            assertEquals(1, binding.resultListenerCount)
+            binding.emitActivityResult(0, Activity.RESULT_CANCELED, null)
+            first.await()
+            assertEquals("NotFoundError", retained.errorCode)
+            assertEquals(1, retained.replyCount)
+
+            val detached = FakeResult()
+            val second = async { RequestDeviceCommand(launcher, mapOf("acceptAllDevices" to true), detached).execute() }
+            runCurrent()
+            launcher.detach()
+            second.await()
+            assertEquals("InvalidStateError", detached.errorCode)
+            assertEquals(1, detached.replyCount)
+            binding.emitActivityResult(0, Activity.RESULT_OK, Intent())
+            assertEquals(1, detached.replyCount)
+        }
+    }
+
+    @Test
     fun execute_propagatesCancellationAndEveryChooserErrorAndResumes() = runTest {
         withLauncher { activity, launcher, binding ->
             val errors = listOf(
@@ -86,7 +115,8 @@ class RequestDeviceCommandTest {
                 RequestDeviceActivity.RESULT_NOT_FOUND_ERROR to "NotFoundError",
                 RequestDeviceActivity.RESULT_SECURITY_ERROR to "SecurityError",
                 RequestDeviceActivity.RESULT_NOT_SUPPORTED_ERROR to "NotSupportedError",
-                RequestDeviceActivity.RESULT_INVALID_STATE_ERROR to "InvalidStateError"
+                RequestDeviceActivity.RESULT_INVALID_STATE_ERROR to "InvalidStateError",
+                12345 to "UnknownError"
             )
             for ((code, expected) in errors) {
                 val result = FakeResult()
@@ -107,4 +137,3 @@ class RequestDeviceCommandTest {
         }
     }
 }
-

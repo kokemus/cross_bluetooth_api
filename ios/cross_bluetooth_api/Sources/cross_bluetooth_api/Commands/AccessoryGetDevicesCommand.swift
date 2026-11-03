@@ -2,8 +2,7 @@ import AccessorySetupKit
 import Flutter
 
 @available(iOS 18.0, *)
-@MainActor
-final class AccessoryGetDevicesCommand: BaseCommand, @unchecked Sendable {
+final class AccessoryGetDevicesCommand: BaseCommand {
     private let session: ASAccessorySession
     private var completed = false
 
@@ -16,19 +15,18 @@ final class AccessoryGetDevicesCommand: BaseCommand, @unchecked Sendable {
     }
 
     override func execute() async {
-        session.activate(on: .main) { event in
-            MainActor.assumeIsolated {
-                self.handle(event.eventType, error: event.error)
-            }
-        }
+        session.activate(on: .main, eventHandler: handle(event:))
+    }
+
+    func handle(event: ASAccessoryEvent) {
+        handle(event.eventType, error: event.error)
     }
 
     func handle(_ eventType: ASAccessoryEventType, error: Error? = nil) {
         guard !completed else { return }
         if let error {
             let error = error as NSError
-            finish(FlutterError(
-                code: "UnknownError",
+            finish(FlutterError.networkError(
                 message: error.localizedDescription,
                 details: ["domain": error.domain, "code": error.code]
             ))

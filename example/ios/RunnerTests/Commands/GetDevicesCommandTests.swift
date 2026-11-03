@@ -50,7 +50,16 @@ final class AccessoryGetDevicesCommandTests: XCTestCase {
             await command.execute()
             command.handle(.invalidated, error: error)
             command.handle(.activated)
-            XCTAssertEqual((result.value as? FlutterError)?.code, error == nil ? "NetworkError" : "UnknownError")
+            let flutterError = result.value as? FlutterError
+            XCTAssertEqual(flutterError?.code, "NetworkError")
+            if let error {
+                XCTAssertEqual(flutterError?.message, "NetworkError: \(error.localizedDescription)")
+                let details = flutterError?.details as? [String: Any]
+                XCTAssertEqual(details?["domain"] as? String, error.domain)
+                XCTAssertEqual(details?["code"] as? Int, error.code)
+            } else {
+                XCTAssertNil(flutterError?.details)
+            }
             XCTAssertEqual(result.replyCount, 1)
             XCTAssertEqual(session.invalidationCount, 1)
         }
@@ -59,7 +68,7 @@ final class AccessoryGetDevicesCommandTests: XCTestCase {
 
 @MainActor
 final class GetDevicesPluginTests: XCTestCase {
-    func test_handle_reportsNotImplementedWithoutAccessorySetupKit() throws {
+    func test_handle_reportsNotSupportedWithoutAccessorySetupKit() throws {
         guard (Bundle.main.object(forInfoDictionaryKey: "NSAccessorySetupKitSupports") as? [String])?
             .contains("Bluetooth") != true else {
             throw XCTSkip("The test host has AccessorySetupKit Bluetooth support configured.")
@@ -69,7 +78,7 @@ final class GetDevicesPluginTests: XCTestCase {
             FlutterMethodCall(methodName: "getDevices", arguments: nil),
             result: result.handler
         )
-        XCTAssertTrue((result.value as? NSObject) === FlutterMethodNotImplemented)
+        XCTAssertEqual((result.value as? FlutterError)?.code, "NotSupportedError")
         XCTAssertEqual(result.replyCount, 1)
     }
 }

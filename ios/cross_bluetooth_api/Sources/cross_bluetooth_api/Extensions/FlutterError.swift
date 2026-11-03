@@ -1,34 +1,34 @@
 import Flutter
 
 extension FlutterError {
-    static func networkError() -> FlutterError {
+    static func networkError(message: String = "A network error occurred.", details: Any? = nil) -> FlutterError {
         return FlutterError(
             code: "NetworkError",
-            message: "NetworkError: A network error occurred.",
-            details: nil
+            message: "NetworkError: \(message)",
+            details: details
         )
     }
 
-    static func notFoundError() -> FlutterError {
+    static func notFoundError(message: String = "There is no Bluetooth device that matches the specified options.", details: Any? = nil) -> FlutterError {
         return FlutterError(
             code: "NotFoundError",
-            message: "NotFoundError: There is no Bluetooth device that matches the specified options.",
-            details: nil
+            message: "NotFoundError: \(message)",
+            details: details
         )
     }
 
-    static func userCancelledError() -> FlutterError {
+    static func userCancelledError(message: String = "User cancelled the requestDevice() chooser.") -> FlutterError {
         return FlutterError(
             code: "NotFoundError",
-            message: "NotFoundError: User cancelled the requestDevice() chooser.",
+            message: "NotFoundError: \(message)",
             details: nil
         )
     }
 
-    static func notSupportedError() -> FlutterError {
+    static func notSupportedError(message: String = "Characteristic does not support notifications.") -> FlutterError {
         return FlutterError(
             code: "NotSupportedError",
-            message: "NotSupportedError: Characteristic does not support notifications.",
+            message: "NotSupportedError: \(message)",
             details: nil
         )
     }

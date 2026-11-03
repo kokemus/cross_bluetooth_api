@@ -38,7 +38,7 @@ public class BaseCommand: NSObject, Command {
     }
 
     func execute() async {
-        pendingResult(FlutterError(code: "NotImplemented", message: "Command \(id.rawValue) is not implemented.", details: nil))
+        pendingResult(FlutterError.notSupportedError(message: "Command \(id.rawValue) is not implemented."))
     }
 
     func dataArgument(_ key: String) -> Data? {
